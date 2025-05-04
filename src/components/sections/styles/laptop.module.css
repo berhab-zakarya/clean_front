@@ -1,0 +1,28 @@
+
+  .slideTrack {
+    display: flex;
+    width: calc(200px * 10); /* Adjust based on number of images and their width */
+    animation: scroll 30s linear infinite;
+  }
+  
+  .slide {
+    width: 200px; /* Adjust based on your needs */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 20px;
+  }
+  
+  @keyframes scroll {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(calc(-200px * 5)); /* Half of total width */
+    }
+  }
+  
+  /* Optional: Pause animation on hover */
+  .slideTrack:hover {
+    animation-play-state: paused;
+  }

@@ -1,0 +1,13 @@
+public/assets/fonts/OFL.txt
+public/assets/fonts/README.txt
+public/assets/fonts/revolution.ttf
+public/assets/fonts/static/black.ttf
+public/assets/fonts/static/bold.ttf
+public/assets/fonts/static/extrabold.ttf
+public/assets/fonts/static/extralight.ttf
+public/assets/fonts/static/light.ttf
+public/assets/fonts/static/medium.ttf
+public/assets/fonts/static/regular.ttf
+public/assets/fonts/static/semibold.ttf
+public/assets/fonts/static/thin.ttf
+public/assets/fonts/variablefont_wght.ttf
