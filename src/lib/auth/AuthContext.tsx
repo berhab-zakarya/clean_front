@@ -13,7 +13,18 @@ interface AuthContextType {
   refreshAuth: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Add initial context value
+const initialAuthContext: AuthContextType = {
+  user: null,
+  accessToken: null,
+  isAuthenticated: false,
+  loginUser: async () => {},
+  logoutUser: async () => {},
+  refreshAuth: async () => {},
+};
+
+// Initialize context with initial value
+const AuthContext = createContext<AuthContextType>(initialAuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -76,7 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [accessToken, refreshAuth]);
 
-  const value = {
+  const value: AuthContextType = {
     user,
     accessToken,
     isAuthenticated: !!user && !!accessToken,
@@ -90,8 +101,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
+
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
-  return context;
+
+  return {
+    user: context.user,
+    accessToken: context.accessToken,
+    isAuthenticated: context.isAuthenticated,
+    login: context.loginUser,
+    logout: context.logoutUser,
+    refreshAuth: context.refreshAuth
+  };
 };

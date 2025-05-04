@@ -1,0 +1,321 @@
+"use client"
+
+import type React from "react"
+
+import { useState, useRef, useEffect } from "react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
+import { Textarea } from "@/components/ui/textarea"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Upload, X, Moon, Sun } from "lucide-react"
+
+export default function PersonalAccount() {
+  const [avatarUrl, setAvatarUrl] = useState<string>("/images/placeholder-user.jpg")
+  const [isUploading, setIsUploading] = useState(false)
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
+  const [darkMode, setDarkMode] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Check system preferences and set initial theme
+  useEffect(() => {
+    // Check if user prefers dark mode
+    if (typeof window !== 'undefined') {
+      const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+      setDarkMode(isDarkMode)
+      
+      // Apply theme to document
+      if (isDarkMode) {
+        document.documentElement.classList.add('dark')
+      }
+    }
+  }, [])
+
+  // Toggle dark mode
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode)
+    document.documentElement.classList.toggle('dark')
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && (file.type === "image/jpeg" || file.type === "image/png")) {
+      setIsUploading(true)
+
+      // Create a URL for the file to display as preview
+      const objectUrl = URL.createObjectURL(file)
+      setAvatarUrl(objectUrl)
+
+      // Simulate upload completion
+      setTimeout(() => {
+        setIsUploading(false)
+      }, 1000)
+    }
+  }
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleDeleteAvatar = () => {
+    setAvatarUrl("/images/placeholder-user.jpg")
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-8 dark:bg-gray-900 dark:text-white transition-colors duration-200">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-blue-800 dark:text-blue-400">Personal Account</h1>
+          <p className="text-muted-foreground dark:text-gray-400">Manage your personal information and preferences</p>
+        </div>
+        
+        
+      </div>
+
+      <Card className="dark:bg-gray-800 dark:border-gray-700">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold tracking-tight text-blue-800 dark:text-blue-400">Profile Information</CardTitle>
+          <CardDescription className="dark:text-gray-400">Update your photo and personal details here.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex flex-col md:flex-row gap-6 text-blue-600 dark:text-blue-400">
+            <div className="flex flex-col items-center gap-4">
+              <div className="relative group">
+                <Avatar className="h-24 w-24 border-2 border-muted dark:border-gray-600">
+                  <AvatarImage src={avatarUrl || "/placeholder.svg"} alt="Profile" />
+                  <AvatarFallback className="text-2xl dark:bg-gray-700 dark:text-gray-300">JD</AvatarFallback>
+                </Avatar>
+                <div
+                  className="absolute inset-0 bg-black/30 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  onClick={handleUploadClick}
+                >
+                  <Upload className="h-6 w-6 text-white" />
+                </div>
+                {isUploading && (
+                  <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+                    <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                )}
+              </div>
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/jpeg, image/png"
+                onChange={handleFileChange}
+              />
+              <div className="flex gap-2 text-black dark:text-white">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleDeleteAvatar}
+                  className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-600"
+                >
+                  Delete
+                </Button>
+                <Button 
+                  className="bg-orange-500 text-white hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-700"
+                  size="sm" 
+                  onClick={handleUploadClick}
+                >
+                  {isUploading ? "Uploading..." : "Upload"}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground text-center dark:text-gray-400">JPG or PNG. Max size 1MB.</p>
+            </div>
+
+            <div className="flex-1 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName" className="dark:text-gray-300">First Name</Label>
+                  <Input id="firstName" placeholder="Enter first name" className="dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName" className="dark:text-gray-300">Last Name</Label>
+                  <Input id="lastName" placeholder="Enter last name" className="dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email" className="dark:text-gray-300">Email Address</Label>
+                <Input id="email" type="email" placeholder="Enter email address" className="dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="dark:text-gray-300">Phone Number</Label>
+                  <Input id="phone" type="tel" placeholder="Enter phone number" className="dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="country" className="dark:text-gray-300">Country</Label>
+                  <Select>
+                    <SelectTrigger id="country" className="dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                      <SelectValue placeholder="Select country" />
+                    </SelectTrigger>
+                    <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+                      <SelectItem value="us" className="dark:text-gray-200 dark:hover:bg-gray-700">Algeria</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <Separator className="dark:bg-gray-700" />
+
+          <div className="space-y-4">
+            <div className="space-y-2 text-blue-600 dark:text-blue-400">
+              <Label htmlFor="bio" className="dark:text-gray-300">Bio</Label>
+              <Textarea 
+                id="bio" 
+                placeholder="Write a short bio about yourself" 
+                className="min-h-[120px] dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button 
+              variant="outline"
+              className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-600"
+            >
+              Cancel
+            </Button>
+            <Button className="bg-orange-500 text-white hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-700">
+              Save Changes
+            </Button>
+          </div>
+
+          <Separator className="dark:bg-gray-700" />
+
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-2xl font-bold tracking-tight text-blue-800 dark:text-blue-400">Shop Information</h3>
+            </div>
+            <p className="text-sm text-muted-foreground dark:text-gray-400">
+            Configure your store information that will be visible to your customers.
+            </p>
+          </div>
+        </CardContent>
+        <CardFooter className="flex justify-end gap-2">
+          <Button
+            onClick={() => setIsProfileModalOpen(true)}
+            className="bg-orange-500 hover:bg-orange-600 text-white dark:bg-orange-600 dark:hover:bg-orange-700"
+          >
+            Edit Store
+          </Button>
+        </CardFooter>
+      </Card>
+
+      <Card className="dark:bg-gray-800 dark:border-gray-700">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold tracking-tight text-blue-800 dark:text-blue-400">Preferences</CardTitle>
+          <CardDescription className="dark:text-gray-400">Manage your notification and display preferences.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 text-blue-600 dark:text-blue-400">
+          <div className="space-y-2">
+            <Label htmlFor="language" className="dark:text-gray-300">Language</Label>
+            <Select>
+              <SelectTrigger id="language" className="dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <SelectValue placeholder="Select language" />
+              </SelectTrigger>
+              <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+                <SelectItem value="en" className="dark:text-gray-200 dark:hover:bg-gray-700">English</SelectItem>
+                <SelectItem value="es" className="dark:text-gray-200 dark:hover:bg-gray-700">Spanish</SelectItem>
+                <SelectItem value="fr" className="dark:text-gray-200 dark:hover:bg-gray-700">French</SelectItem>
+                <SelectItem value="de" className="dark:text-gray-200 dark:hover:bg-gray-700">German</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="timezone" className="dark:text-gray-300">Timezone</Label>
+            <Select>
+              <SelectTrigger id="timezone" className="dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <SelectValue placeholder="Select timezone" />
+              </SelectTrigger>
+              <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+                <SelectItem value="pst" className="dark:text-gray-200 dark:hover:bg-gray-700">Pacific Time (PT)</SelectItem>
+                <SelectItem value="mst" className="dark:text-gray-200 dark:hover:bg-gray-700">Mountain Time (MT)</SelectItem>
+                <SelectItem value="cst" className="dark:text-gray-200 dark:hover:bg-gray-700">Central Time (CT)</SelectItem>
+                <SelectItem value="est" className="dark:text-gray-200 dark:hover:bg-gray-700">Eastern Time (ET)</SelectItem>
+                <SelectItem value="utc" className="dark:text-gray-200 dark:hover:bg-gray-700">Coordinated Universal Time (UTC)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+        <CardFooter className="flex justify-end gap-2">
+          <Button 
+            variant="outline"
+            className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-600"
+          >
+            Cancel
+          </Button>
+          <Button className="bg-orange-500 hover:bg-orange-600 text-white dark:bg-orange-600 dark:hover:bg-orange-700">
+            Save Preferences
+          </Button>
+        </CardFooter>
+      </Card>
+
+      {/* Profile Modal */}
+      <Dialog open={isProfileModalOpen} onOpenChange={setIsProfileModalOpen}>
+        <DialogContent className="sm:w-[655px] h-[450px] max-h-[450px] p-5 dark:bg-gray-800 dark:text-white dark:border-gray-700" style={{ maxWidth: "655px", width: "655px", height: "450px" }}>
+          <DialogHeader className="flex justify-between items-left">
+            <DialogTitle className="text-lg font-medium text-blue-800 dark:text-blue-400">Edit Profile </DialogTitle>
+            <button onClick={() => setIsProfileModalOpen(false)} className="text-gray-400 dark:text-gray-300">
+            </button>
+          </DialogHeader>
+          <div className="py-2">
+            <p className="text-sm text-gray-500 dark:text-gray-300 mb-6">
+            These details may be publicly available. Do not use your personal information.
+            </p>
+
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="shopName" className="text-sm font-normal dark:text-gray-300">Store Name</Label>
+                  <Input id="shopName" className="border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Appears on your website</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="shopPhone" className="text-sm font-normal dark:text-gray-300">Store Phone</Label>
+                  <Input id="shopPhone" type="tel" className="border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="shopEmail" className="text-sm font-normal dark:text-gray-300">Store Email</Label>
+                <Input id="shopEmail" type="email" className="border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Receives messages about your store. For contact email address
+                </p>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="flex justify-end gap-2 mt-auto">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsProfileModalOpen(false)} 
+              className="rounded-full px-6 py-2 text-black bg-white border border-gray-300 hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-600"
+            >
+              Annuler
+            </Button>
+            <Button 
+              onClick={() => setIsProfileModalOpen(false)}
+              className="rounded-full px-6 py-2 text-white bg-blue-800 hover:bg-orange-600 dark:bg-blue-700 dark:hover:bg-orange-600"
+            >
+              Enregistrer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}

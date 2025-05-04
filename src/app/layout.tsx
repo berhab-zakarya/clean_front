@@ -12,7 +12,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 import { regular, bold, poppins, medium } from "@/lib/fonts";
-import { AuthProvider } from "@/lib/auth/AuthContext";
+import { AuthProvider } from "@/context/AuthContext";
 import Image from "next/image";
 
 export const metadata: Metadata = {
