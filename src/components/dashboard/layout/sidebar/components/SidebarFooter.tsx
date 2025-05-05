@@ -1,6 +1,9 @@
 import { Headphones, Gift, LogOut } from "lucide-react"
+import { useLogout } from "@/hooks/useLogout"
 
 export const SidebarFooter = () => {
+  const { logout, isLoggingOut } = useLogout();
+
   return (
     <div className="mt-auto p-6 space-y-4">
       <button className="w-full flex items-center justify-center py-3 px-4 rounded-full 
@@ -26,12 +29,20 @@ export const SidebarFooter = () => {
         </div>
       </div>
 
-      <button className="w-full flex items-center text-[#ff4423] font-medium
-        transition-all duration-300 ease-in-out
-        hover:bg-red-50 hover:pl-2 rounded-lg p-2
-        group">
-        <LogOut className="w-5 h-5 mr-2 transition-transform duration-300 group-hover:-translate-x-1" />
-        <span className="transition-colors duration-300 group-hover:text-red-600">Log Out</span>
+      <button 
+        onClick={logout}
+        disabled={isLoggingOut}
+        className="w-full flex items-center text-[#ff4423] font-medium
+          transition-all duration-300 ease-in-out
+          hover:bg-red-50 hover:pl-2 rounded-lg p-2
+          group disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <LogOut className={`w-5 h-5 mr-2 transition-transform duration-300 
+          ${isLoggingOut ? 'animate-spin' : 'group-hover:-translate-x-1'}`} 
+        />
+        <span className="transition-colors duration-300 group-hover:text-red-600">
+          {isLoggingOut ? "Logging out..." : "Log Out"}
+        </span>
       </button>
     </div>
   )

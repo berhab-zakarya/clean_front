@@ -1,28 +1,21 @@
 "use client"
+import { useAuth } from '@/hooks/useAuth';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from './AuthContext';
 
-export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, refreshAuth } = useAuth();
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+}
+
+export function ProtectedRoute({ children }: ProtectedRouteProps) {
+  const { isAuthenticated } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!isAuthenticated) {
-      const tryRefresh = async () => {
-        try {
-          await refreshAuth();
-        } catch {
-          router.push('/login');
-        }
-      };
-      tryRefresh();
+      router.push('/login');
     }
-  }, [isAuthenticated, refreshAuth, router]);
+  }, [isAuthenticated, router]);
 
-  if (!isAuthenticated) {
-    return null;
-  }
-
-  return <>{children}</>;
-};
+  return isAuthenticated ? <>{children}</> : null;
+}

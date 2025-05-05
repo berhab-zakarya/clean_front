@@ -1,6 +1,8 @@
 "use client"
 
 import { useState } from "react"
+import { useUser } from "@/hooks/useUser"
+import { useLogout } from "@/hooks/useLogout"
 import { Search, Bell, ChevronDown, Settings, LogOut, ShoppingBag, User, Heart, CheckCheck } from "lucide-react"
 import {
   DropdownMenu,
@@ -12,10 +14,13 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import Link from "next/link"
 
 export function DashboardHeader() {
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const { userData, loading } = useUser()
+  const { logout, isLoggingOut } = useLogout()
 
   // Sample notifications data
   const notifications = [
@@ -116,20 +121,41 @@ export function DashboardHeader() {
           <DropdownMenu open={profileOpen} onOpenChange={setProfileOpen}>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 h-auto p-0">
-                <div className="h-10 w-10 rounded-full bg-[#f97316]"></div>
-                <span className="text-[#1e3a8a] font-bold">ZJ STORE</span>
+                {userData?.user?.profile?.profile_image_url ? (
+                  <img 
+                    src={userData.user.profile.profile_image_url} 
+                    alt="Profile" 
+                    className="h-10 w-10 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="h-10 w-10 rounded-full bg-[#f97316] flex items-center justify-center text-white font-bold">
+                    {userData?.user?.email?.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                )}
+                <span className="text-[#1e3a8a] font-bold">
+                  {userData?.user?.profile?.business_name || 'Loading...'}
+                </span>
                 <ChevronDown className="h-5 w-5 text-[#828282]" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <div className="px-4 py-3">
-                <p className="text-sm font-medium">ZJ STORE</p>
-                <p className="text-xs text-[#828282] mt-1">store@example.com</p>
+                <p className="text-sm font-medium">
+                  {userData?.user?.profile?.business_name || userData?.user?.email?.split('@')[0]}
+                </p>
+                <p className="text-xs text-[#828282] mt-1">{userData?.user?.email}</p>
+                {userData?.user?.profile?.phone_number && (
+                  <p className="text-xs text-[#828282] mt-1">
+                    {userData.user.profile.phone_number}
+                  </p>
+                )}
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <User className="mr-2 h-4 w-4" />
-                <span>Store Profile</span>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/profile">
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile Settings</span>
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <ShoppingBag className="mr-2 h-4 w-4" />
@@ -144,13 +170,19 @@ export function DashboardHeader() {
                 <span>Completed Orders</span>
               </DropdownMenuItem>
               <DropdownMenuItem>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Settings</span>
+                <Link href="/dashboard/settings">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-500">
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Log out</span>
+              <DropdownMenuItem 
+                onClick={logout}
+                disabled={isLoggingOut}
+                className="text-red-500 cursor-pointer"
+              >
+                <LogOut className={`mr-2 h-4 w-4 ${isLoggingOut ? 'animate-spin' : ''}`} />
+                <span>{isLoggingOut ? 'Logging out...' : 'Log out'}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

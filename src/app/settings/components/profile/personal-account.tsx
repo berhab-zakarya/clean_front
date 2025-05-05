@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
+import { useUser } from '@/hooks/useUser';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,30 +13,62 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Upload, X, Moon, Sun } from "lucide-react"
+import { Upload, X, Moon, Sun, CheckCircle2, AlertCircle } from "lucide-react"
+import { toast } from "react-toastify";
+import { Alert } from "@/components/common/feedback/Alert";
 
 export default function PersonalAccount() {
-  const [avatarUrl, setAvatarUrl] = useState<string>("/images/placeholder-user.jpg")
-  const [isUploading, setIsUploading] = useState(false)
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
-  const [darkMode, setDarkMode] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const { userData, loading, error: userError, isUpdating, updateProfile } = useUser();
+  const [formData, setFormData] = useState({
+    business_name: '',
+    business_address: '',
+    phone_number: '',
+    tax_identification: '',
+    bio: ''
+  });
+  const [avatarUrl, setAvatarUrl] = useState<string>(
+    userData?.user?.profile?.profile_image_url || "/images/placeholder-user.jpg"
+  );
+  const [isUploading, setIsUploading] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Check system preferences and set initial theme
   useEffect(() => {
-    // Check if user prefers dark mode
+    if (userData?.user?.profile) {
+      const { profile } = userData.user;
+      setFormData({
+        business_name: profile.business_name || '',
+        business_address: profile.business_address || '',
+        phone_number: profile.phone_number || '',
+        tax_identification: profile.tax_identification || '',
+        bio: profile.bio || ''
+      });
+      
+      if (profile.profile_image_url) {
+        setAvatarUrl(profile.profile_image_url);
+      }
+    }
+  }, [userData]);
+
+  useEffect(() => {
+    console.log('userData changed:', userData);
+    console.log('formData:', formData);
+  }, [userData, formData]);
+
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
       setDarkMode(isDarkMode)
       
-      // Apply theme to document
       if (isDarkMode) {
         document.documentElement.classList.add('dark')
       }
     }
   }, [])
 
-  // Toggle dark mode
   const toggleDarkMode = () => {
     setDarkMode(!darkMode)
     document.documentElement.classList.toggle('dark')
@@ -46,11 +79,9 @@ export default function PersonalAccount() {
     if (file && (file.type === "image/jpeg" || file.type === "image/png")) {
       setIsUploading(true)
 
-      // Create a URL for the file to display as preview
       const objectUrl = URL.createObjectURL(file)
       setAvatarUrl(objectUrl)
 
-      // Simulate upload completion
       setTimeout(() => {
         setIsUploading(false)
       }, 1000)
@@ -68,6 +99,56 @@ export default function PersonalAccount() {
     }
   }
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    
+    try {
+      const success = await updateProfile({
+        profile: {
+          ...formData,
+          is_verified: userData?.user?.profile?.is_verified || false,
+          verification_document_url: userData?.user?.profile?.verification_document_url,
+          profile_image_url: userData?.user?.profile?.profile_image_url
+        }
+      });
+
+      if (success) {
+        setSuccess('Profile updated successfully');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update profile');
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [id]: value
+    }));
+  };
+
+  console.log('Current formData:', formData);
+  console.log('Current userData:', userData);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+      </div>
+    );
+  }
+
+  if (userError) {
+    return (
+      <div className="flex items-center justify-center h-screen text-red-500">
+        Error loading profile: {userError}
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 dark:bg-gray-900 dark:text-white transition-colors duration-200">
       <div className="flex justify-between items-center">
@@ -75,8 +156,6 @@ export default function PersonalAccount() {
           <h1 className="text-2xl font-bold tracking-tight text-blue-800 dark:text-blue-400">Personal Account</h1>
           <p className="text-muted-foreground dark:text-gray-400">Manage your personal information and preferences</p>
         </div>
-        
-        
       </div>
 
       <Card className="dark:bg-gray-800 dark:border-gray-700">
@@ -85,6 +164,26 @@ export default function PersonalAccount() {
           <CardDescription className="dark:text-gray-400">Update your photo and personal details here.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {error && (
+            <Alert 
+              color="error"
+              icon={<AlertCircle className="h-5 w-5" />}
+              title="Error"
+            >
+              {error}
+            </Alert>
+          )}
+
+          {success && (
+            <Alert 
+              color="success"
+              icon={<CheckCircle2 className="h-5 w-5" />}
+              title="Success"
+            >
+              {success}
+            </Alert>
+          )}
+
           <div className="flex flex-col md:flex-row gap-6 text-blue-600 dark:text-blue-400">
             <div className="flex flex-col items-center gap-4">
               <div className="relative group">
@@ -132,64 +231,89 @@ export default function PersonalAccount() {
             </div>
 
             <div className="flex-1 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName" className="dark:text-gray-300">First Name</Label>
-                  <Input id="firstName" placeholder="Enter first name" className="dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+              <form onSubmit={handleSubmit}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="business_name" className="dark:text-gray-300">Business Name</Label>
+                    <Input 
+                      id="business_name" 
+                      value={formData.business_name}
+                      onChange={handleChange}
+                      className="dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="dark:text-gray-300">Email</Label>
+                    <Input 
+                      id="email" 
+                      value={userData?.user?.email || ''}
+                      type="email" 
+                      disabled
+                      className="dark:bg-gray-700 dark:border-gray-600 dark:text-white opacity-70" 
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName" className="dark:text-gray-300">Last Name</Label>
-                  <Input id="lastName" placeholder="Enter last name" className="dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
-                </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email" className="dark:text-gray-300">Email Address</Label>
-                <Input id="email" type="email" placeholder="Enter email address" className="dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="business_address" className="dark:text-gray-300">Business Address</Label>
+                  <Input 
+                    id="business_address" 
+                    value={formData.business_address}
+                    onChange={handleChange}
+                    placeholder="Enter business address" 
+                    className="dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
+                  />
+                </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="phone" className="dark:text-gray-300">Phone Number</Label>
-                  <Input id="phone" type="tel" placeholder="Enter phone number" className="dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="phone_number" className="dark:text-gray-300">Phone Number</Label>
+                    <Input 
+                      id="phone_number" 
+                      type="tel" 
+                      value={formData.phone_number}
+                      onChange={handleChange}
+                      placeholder="Enter phone number" 
+                      className="dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="tax_identification" className="dark:text-gray-300">Tax ID</Label>
+                    <Input 
+                      id="tax_identification" 
+                      value={formData.tax_identification}
+                      onChange={handleChange}
+                      placeholder="Enter tax ID" 
+                      className="dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="country" className="dark:text-gray-300">Country</Label>
-                  <Select>
-                    <SelectTrigger id="country" className="dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                      <SelectValue placeholder="Select country" />
-                    </SelectTrigger>
-                    <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
-                      <SelectItem value="us" className="dark:text-gray-200 dark:hover:bg-gray-700">Algeria</SelectItem>
-                    </SelectContent>
-                  </Select>
+
+                <Separator className="dark:bg-gray-700" />
+
+                <div className="space-y-4">
+                  <div className="space-y-2 text-blue-600 dark:text-blue-400">
+                    <Label htmlFor="bio" className="dark:text-gray-300">Bio</Label>
+                    <Textarea 
+                      id="bio" 
+                      value={formData.bio}
+                      onChange={handleChange}
+                      placeholder="Write a short bio about yourself" 
+                      className="min-h-[120px] dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    />
+                  </div>
                 </div>
-              </div>
+                <div className="flex justify-end gap-2 mt-4">
+                  <Button 
+                    type="submit" 
+                    disabled={isUpdating}
+                    className="bg-orange-500 text-white hover:bg-orange-600"
+                  >
+                    {isUpdating ? "Updating..." : "Save Changes"}
+                  </Button>
+                </div>
+              </form>
             </div>
-          </div>
-
-          <Separator className="dark:bg-gray-700" />
-
-          <div className="space-y-4">
-            <div className="space-y-2 text-blue-600 dark:text-blue-400">
-              <Label htmlFor="bio" className="dark:text-gray-300">Bio</Label>
-              <Textarea 
-                id="bio" 
-                placeholder="Write a short bio about yourself" 
-                className="min-h-[120px] dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              />
-            </div>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button 
-              variant="outline"
-              className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-600"
-            >
-              Cancel
-            </Button>
-            <Button className="bg-orange-500 text-white hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-700">
-              Save Changes
-            </Button>
           </div>
 
           <Separator className="dark:bg-gray-700" />
@@ -213,57 +337,6 @@ export default function PersonalAccount() {
         </CardFooter>
       </Card>
 
-      <Card className="dark:bg-gray-800 dark:border-gray-700">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold tracking-tight text-blue-800 dark:text-blue-400">Preferences</CardTitle>
-          <CardDescription className="dark:text-gray-400">Manage your notification and display preferences.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4 text-blue-600 dark:text-blue-400">
-          <div className="space-y-2">
-            <Label htmlFor="language" className="dark:text-gray-300">Language</Label>
-            <Select>
-              <SelectTrigger id="language" className="dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                <SelectValue placeholder="Select language" />
-              </SelectTrigger>
-              <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
-                <SelectItem value="en" className="dark:text-gray-200 dark:hover:bg-gray-700">English</SelectItem>
-                <SelectItem value="es" className="dark:text-gray-200 dark:hover:bg-gray-700">Spanish</SelectItem>
-                <SelectItem value="fr" className="dark:text-gray-200 dark:hover:bg-gray-700">French</SelectItem>
-                <SelectItem value="de" className="dark:text-gray-200 dark:hover:bg-gray-700">German</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="timezone" className="dark:text-gray-300">Timezone</Label>
-            <Select>
-              <SelectTrigger id="timezone" className="dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                <SelectValue placeholder="Select timezone" />
-              </SelectTrigger>
-              <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
-                <SelectItem value="pst" className="dark:text-gray-200 dark:hover:bg-gray-700">Pacific Time (PT)</SelectItem>
-                <SelectItem value="mst" className="dark:text-gray-200 dark:hover:bg-gray-700">Mountain Time (MT)</SelectItem>
-                <SelectItem value="cst" className="dark:text-gray-200 dark:hover:bg-gray-700">Central Time (CT)</SelectItem>
-                <SelectItem value="est" className="dark:text-gray-200 dark:hover:bg-gray-700">Eastern Time (ET)</SelectItem>
-                <SelectItem value="utc" className="dark:text-gray-200 dark:hover:bg-gray-700">Coordinated Universal Time (UTC)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-        <CardFooter className="flex justify-end gap-2">
-          <Button 
-            variant="outline"
-            className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-600"
-          >
-            Cancel
-          </Button>
-          <Button className="bg-orange-500 hover:bg-orange-600 text-white dark:bg-orange-600 dark:hover:bg-orange-700">
-            Save Preferences
-          </Button>
-        </CardFooter>
-      </Card>
-
-      {/* Profile Modal */}
       <Dialog open={isProfileModalOpen} onOpenChange={setIsProfileModalOpen}>
         <DialogContent className="sm:w-[655px] h-[450px] max-h-[450px] p-5 dark:bg-gray-800 dark:text-white dark:border-gray-700" style={{ maxWidth: "655px", width: "655px", height: "450px" }}>
           <DialogHeader className="flex justify-between items-left">

@@ -20,6 +20,7 @@ type AuthAction =
 
 interface AuthContextType {
   state: AuthState;
+  isAuthenticated: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
   signup: (credentials: SignupData) => Promise<void>;
   logout: () => Promise<void>;
@@ -189,7 +190,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   return (
-    <AuthContext.Provider value={{ state, login, signup, logout, resetError }}>
+    <AuthContext.Provider value={{ state, isAuthenticated: state.isAuthenticated, login, signup, logout, resetError }}>
       {children}
     </AuthContext.Provider>
   );
