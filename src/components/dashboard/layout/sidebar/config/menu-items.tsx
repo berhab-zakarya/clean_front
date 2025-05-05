@@ -1,26 +1,65 @@
-import {
-    Home,
-    BarChart2,
-    FileText,
-    Package,
-    Wallet,
-    MessageSquare,
-    Users,
-    Settings,
-    HelpCircle,
-  } from "lucide-react"
-  
-  export const mainMenuItems = [
-    { icon: Home, text: "Dashboard", href: "/dashboard", active: true },
-    { icon: BarChart2, text: "Insight", href: "#", active: false },
-    { icon: FileText, text: "Invoices", href: "/dashboard/invoice", active: false },
-    { icon: Package, text: "Products", href: "#", active: false },
-    { icon: Wallet, text: "Reimburse", href: "#", active: false },
-    { icon: MessageSquare, text: "Inbox", href: "#", active: false },
-    { icon: Users, text: "People & Teams", href: "#", active: false },
-  ]
-  
-  export const preferencesItems = [
-    { icon: Settings, text: "Settings", href: "/settings", active: false },
-    { icon: HelpCircle, text: "Help & Center", href: "#", active: false },
-  ]
+import Image from 'next/image'
+
+const iconComponent = (iconPath: string) => {
+  const IconComponent = () => {
+    return (
+      <Image 
+        src={iconPath}
+        alt="menu icon"
+        width={20}
+        height={20}
+        className="opacity-75 group-hover:opacity-100 transition-opacity"
+      />
+    )
+  }
+  IconComponent.displayName = 'IconComponent'
+  return IconComponent
+}
+
+export const mainMenuItems = [
+  { 
+    icon: iconComponent('/assets/icons/sidebar/dashboard.svg'), 
+    text: "Dashboard", 
+    href: "/dashboard", 
+    active: true 
+  },
+  { 
+    icon: iconComponent('/assets/icons/sidebar/insight_icon.svg'), 
+    text: "Insight", 
+    href: "#", 
+    active: false 
+  },
+  { 
+    icon: iconComponent('/assets/icons/sidebar/invoice.svg'), 
+    text: "Invoices", 
+    href: "/dashboard/invoice", 
+    active: false 
+  },
+  { 
+    icon: iconComponent('/assets/icons/sidebar/products_icon.svg'), 
+    text: "Products", 
+    href: "/dashboard/product", 
+    active: false 
+  },
+  { 
+    icon: iconComponent('/assets/icons/sidebar/inbox_icon.svg'), 
+    text: "Inbox", 
+    href: "#", 
+    active: false 
+  },
+]
+
+export const preferencesItems = [
+  { 
+    icon: iconComponent('/assets/icons/sidebar/setting_icon.svg'), 
+    text: "Settings", 
+    href: "/dashboard/settings", 
+    active: false 
+  },
+  { 
+    icon: iconComponent('/assets/icons/sidebar/help_center_icon.svg'), 
+    text: "Help & Center", 
+    href: "#", 
+    active: false 
+  },
+]

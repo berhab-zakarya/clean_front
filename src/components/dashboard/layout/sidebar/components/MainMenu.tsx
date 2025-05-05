@@ -8,7 +8,7 @@ export const MainMenu = () => {
 
   return (
     <div className="transform transition-all duration-300 hover:translate-x-1">
-      <h3 className="text-sm font-medium text-gray-500 mb-4 transition-colors duration-300 hover:text-gray-700">
+      <h3 className="text-[14px] font-medium text-[#828282] mb-4 transition-colors duration-300 hover:text-gray-700">
         Main Menu
       </h3>
       <nav className="space-y-4">
