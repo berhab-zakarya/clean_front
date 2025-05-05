@@ -80,8 +80,7 @@ export default function SignupPage() {
                 email: formData.email,
                 password: formData.password,
                 password_confirm: formData.password_confirm,
-                role: formData.role,
-                business_name: formData.business_name // Include business_name in the request
+                role: "seller"
             });
             
             showSuccessToast('Account created successfully!');
