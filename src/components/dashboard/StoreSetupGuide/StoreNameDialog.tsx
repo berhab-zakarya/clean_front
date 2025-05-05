@@ -18,12 +18,27 @@ export function StoreNameDialog({ isOpen, onClose, onSuccess }: StoreNameDialogP
     subdomain: ''
   });
 
+  const handleSubdomainChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Only allow lowercase letters, numbers, and hyphens
+    const value = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+    setFormData(prev => ({ ...prev, subdomain: value }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate inputs before submitting
+    if (!formData.storeName.trim()) {
+      return; // Form validation will handle this
+    }
+
+    if (!formData.subdomain.trim()) {
+      return; // Form validation will handle this
+    }
+
     const storeData = {
-      store_name: formData.storeName,
-      subdomain: formData.subdomain,
+      store_name: formData.storeName.trim(),
+      subdomain: formData.subdomain.trim(),
       store_type: 'pure'
     };
 
@@ -102,7 +117,7 @@ export function StoreNameDialog({ isOpen, onClose, onSuccess }: StoreNameDialogP
                   id="subdomain"
                   type="text"
                   value={formData.subdomain}
-                  onChange={(e) => setFormData(prev => ({ ...prev, subdomain: e.target.value }))}
+                  onChange={handleSubdomainChange}
                   placeholder="your-store"
                   className="w-full p-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[var(--primary-900)]"
                   required

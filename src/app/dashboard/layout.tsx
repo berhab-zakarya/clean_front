@@ -1,4 +1,4 @@
-import AppSidebar from '@/components/dashboard/layout/sidebar/AppSidebar';
+
 import { DashboardHeader } from '@/components/dashboard/layout/dashboard-header';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import Sidebar from '@/components/dashboard/layout/sidebar';

@@ -16,13 +16,11 @@ export const useTokenRefresh = () => {
 
       const response = await authAPI.refreshToken(refreshToken);
       
-      // Update tokens in localStorage
       localStorage.setItem('access_token', response.access);
       localStorage.setItem('refresh_token', response.refresh);
       
       return true;
     } catch (error) {
-      // If refresh fails, clear auth data and redirect to login
       localStorage.clear();
       router.push('/login');
       showErrorToast('Session expired. Please login again.');
@@ -30,24 +28,26 @@ export const useTokenRefresh = () => {
     }
   }, [router]);
 
-  // Set up automatic token refresh
   useEffect(() => {
     const REFRESH_INTERVAL = 4 * 60 * 1000; // 4 minutes
     
     const setupTokenRefresh = () => {
-      // Initial token check
       const accessToken = localStorage.getItem('access_token');
       if (!accessToken) return;
 
-      // Set up periodic token refresh
-      const intervalId = setInterval(async () => {
+      let intervalId: NodeJS.Timer;
+
+      const refresh = async () => {
         const success = await refreshAccessToken();
         if (!success) {
           clearInterval(intervalId);
         }
-      }, REFRESH_INTERVAL);
+      };
 
-      // Cleanup on unmount
+      // Initial refresh
+      refresh();
+      
+      intervalId = setInterval(refresh, REFRESH_INTERVAL);
       return () => clearInterval(intervalId);
     };
 

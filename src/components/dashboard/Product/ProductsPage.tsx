@@ -119,7 +119,7 @@ export default function ProductsPage() {
                     <p className="text-sm text-gray-600">Commencez par ajouter à votre boutique les produits que vos clients vont adorer.</p>
                     <div className="pt-4">
                       <div className="flex flex-wrap gap-3">
-                        <Link href="/store/0wzn4a-38/products/new" className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        <Link href="/dashboard/product/productAdd" className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
                             <line x1="12" y1="5" x2="12" y2="19"></line>
                             <line x1="5" y1="12" x2="19" y2="12"></line>

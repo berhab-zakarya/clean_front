@@ -144,26 +144,47 @@ api.interceptors.response.use(
           throw new Error('No refresh token available');
         }
 
-        const response = await authAPI.refreshToken(refreshToken);
-        
-        localStorage.setItem('access_token', response.access);
-        localStorage.setItem('refresh_token', response.refresh);
-        api.defaults.headers.common['Authorization'] = `Bearer ${response.access}`;
+        if (isRefreshing) {
+          try {
+            await new Promise((resolve, reject) => {
+              failedQueue.push({ resolve, reject });
+            });
+            return api(originalRequest);
+          } catch (err) {
+            return Promise.reject(err);
+          }
+        }
 
-        // Retry the original request with new token
-        originalRequest.headers.Authorization = `Bearer ${response.access}`;
-        return api(originalRequest);
+        try {
+          await authAPI.refreshToken(refreshToken);
+          return api(originalRequest);
+        } catch (refreshError) {
+          // If refresh fails, clear everything and redirect
+          localStorage.clear();
+          window.location.href = '/login';
+          return Promise.reject(refreshError);
+        }
       } catch (error) {
-        // If refresh fails, clear auth and redirect to login
-        localStorage.clear();
-        window.location.href = '/login';
         return Promise.reject(error);
       }
     }
-
     return Promise.reject(error);
   }
 );
+
+let isRefreshing = false;
+let failedQueue: any[] = [];
+
+const processQueue = (error: any = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve();
+    }
+  });
+  failedQueue = [];
+};
 
 // Auth API functions
 export const authAPI = {
@@ -300,28 +321,43 @@ export const authAPI = {
   },
 
   refreshToken: async (refreshToken: string): Promise<AuthResponse> => {
+    if (isRefreshing) {
+      return new Promise((resolve, reject) => {
+        failedQueue.push({ resolve, reject });
+      });
+    }
+
+    isRefreshing = true;
+    console.log('Attempting to refresh token with:', refreshToken);
+    
     try {
       const response = await api.post<AuthResponse>('/token/refresh/', {
         refresh: refreshToken
       });
-
+      
+      console.log('Refresh response:', response.data);
       if (response.data.access) {
         localStorage.setItem('access_token', response.data.access);
+        localStorage.setItem('refresh_token', response.data.refresh);
         api.defaults.headers.common['Authorization'] = `Bearer ${response.data.access}`;
         
-        // Update user data if available in response
         if (response.data.user) {
           localStorage.setItem('user', JSON.stringify(response.data.user));
         }
-      }
 
-      return response.data;
-    } catch (error) {
-      // Clear all auth data on failure
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('user');
+        processQueue();
+        return response.data;
+      }
+      throw new Error('No access token in response');
+    } catch (error: any) {
+      console.error('Refresh error:', error.response?.data || error.message);
+      processQueue(error);
+      localStorage.clear();
+      isRefreshing = false; // Reset flag before redirecting
+      window.location.href = '/login';
       throw new Error('Could not refresh token');
+    } finally {
+      isRefreshing = false;
     }
   },
 

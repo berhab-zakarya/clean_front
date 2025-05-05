@@ -1,13 +1,7 @@
 import { useState, useRef } from "react";
 import {
-  Save,
-  Upload,
-  FilePlus,
-  Bold,
-  Italic,
-  Underline as UnderlineIcon, // Renamed to UnderlineIcon
-  ChevronDown,
-  List,
+  // Renamed to UnderlineIcon
+
   Trash2,
 } from "lucide-react";
 import Image from "next/image";
