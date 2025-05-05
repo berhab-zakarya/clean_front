@@ -11,7 +11,7 @@ import {
   } from "lucide-react"
   
   export const mainMenuItems = [
-    { icon: Home, text: "Dashboard", href: "#", active: true },
+    { icon: Home, text: "Dashboard", href: "/dashboard", active: true },
     { icon: BarChart2, text: "Insight", href: "#", active: false },
     { icon: FileText, text: "Invoices", href: "/dashboard/invoice", active: false },
     { icon: Package, text: "Products", href: "#", active: false },

@@ -4,6 +4,7 @@ import { useState } from "react"
 import { MainMenu } from "./components/MainMenu"
 import { PreferencesMenu } from "./components/PreferencesMenu"
 import { SidebarFooter } from "./components/SidebarFooter"
+import Logo from "@/components/common/Logo"
 
 export default function Sidebar() {
   const [isDarkMode, setIsDarkMode] = useState(false)
@@ -15,7 +16,7 @@ export default function Sidebar() {
       <div className="p-6">
         <div className="flex justify-center mb-8">
           <a href="#">
-            <img src="logo/svg/logo.svg" alt="ALGECOM logo" />
+            <Logo/>
           </a>
         </div>
 

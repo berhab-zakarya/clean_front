@@ -17,7 +17,7 @@ const SimpleButton: React.FC<SimpleButtonProps> = ({
 }) => (
   <button
     type={type}
-    className={`inline-flex items-center justify-center px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition ${className}`}
+    className={`inline-flex items-center justify-center px-4 py-2 rounded  hover: transition ${className}`}
     onClick={onClick}
   >
     {icon && <span className="mr-2">{icon}</span>}
