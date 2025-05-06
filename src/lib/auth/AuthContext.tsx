@@ -2,6 +2,7 @@
 
 import React, { createContext, useReducer, useEffect } from 'react';
 import { authAPI, User, LoginCredentials, SignupData } from '@/lib/api/api';
+import { useStore } from '@/hooks/useStore';
 
 // Types
 interface AuthState {
@@ -78,6 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children 
 }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
+  const { checkStoreExistence } = useStore();
 
   // Auth Initialization
   useEffect(() => {
@@ -113,7 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!accessToken || !refreshToken) return null;
 
     try {
-      await authAPI.validateToken(accessToken);
+    
       return { accessToken, refreshToken };
     } catch (error) {
       try {
@@ -146,7 +148,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const response = await authAPI.login(credentials);
       saveAuthData(response);
       dispatch({ type: 'AUTH_SUCCESS', payload: response.user });
-      window.location.href = '/dashboard';
+      
+      // تحقق من وجود متجر قبل التوجيه
+      const hasStore = await checkStoreExistence();
+      console.log('Login successful, has store:', hasStore);
+
+      if (hasStore) {
+        window.location.href = '/dashboard';
+      } else {
+        window.location.href = '/dashboard/StoreSetupGuide';
+      }
+      
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Login failed';
       dispatch({ type: 'AUTH_FAILURE', payload: errorMessage });

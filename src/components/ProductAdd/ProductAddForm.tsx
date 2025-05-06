@@ -1,9 +1,10 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
-  // Renamed to UnderlineIcon
-
   Trash2,
+  MoreHorizontal, Info,
+  ChevronDown
 } from "lucide-react";
+
 import Image from "next/image";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -16,9 +17,23 @@ import InventoryManagement from "./InventoryManagement";
 import VariantsComponent from "./VariantsComponent";
 import ShippingComponent from "./ShippingComponent";
 import { Button } from "../common/ButtonModal";
-import { Dialog } from "@headlessui/react"; // تأكد من تثبيت الحزمة أو استخدم أي Dialog آخر
+import { Dialog } from "@headlessui/react";
 import ProductSidebar from "./ProductSidebar";
+import SimpleInput, { Input } from "../common/Input";
+import { Checkbox } from "../common/Checkbox";
 import ProductDescriptionEditor from "./ProductDescriptionEditor";
+import { useProduct } from "@/hooks/useProduct";
+import { useStore } from "@/hooks/useStore";
+import { useRouter } from 'next/navigation';
+import { toast } from "react-hot-toast"; // Added missing toast import
+
+// Fixed type definition for media files
+interface MediaFile {
+  id: string;
+  name: string;
+  type: string;
+  preview: string;
+}
 
 function UrlDialogButton() {
   const [showUrlInput, setShowUrlInput] = useState(false);
@@ -27,14 +42,13 @@ function UrlDialogButton() {
 
   const handleUploadClick = () => {
     if (fileInputRef.current) {
-      fileInputRef.current.value = ""; // لإعادة رفع نفس الملف إذا لزم الأمر
+      fileInputRef.current.value = "";
       fileInputRef.current.click();
     }
   };
 
   const handleAddUrl = () => {
     if (!url) return;
-    // هنا ضع منطق إضافة الملف من الرابط
     alert(`File added from URL: ${url}`);
     setShowUrlInput(false);
     setUrl("");
@@ -80,14 +94,31 @@ function UrlDialogButton() {
 }
 
 export default function ProductAddForm() {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter(); // Added router hook
+  
+  const { createProduct, loading: productLoading } = useProduct();
+  const { userStore } = useStore();
+
   const [productData, setProductData] = useState({
+    tenant_id: userStore?.id || 0,
     title: "",
     description: "",
-    price: "",
-    comparePrice: "",
-    cost: "",
-    chargeTax: true,
-    status: "draft",
+    price: 0,
+    price_discount: 0,
+    discount: 0,
+    status: "exists" as const,
+    category: "",
+    product_type: "",
+    vendor: "",
+    collections: [],
+    tags: [],
+    sku: "",
+    inventory_quantity: 0,
+    available_quantity: 0,
+    requires_shipping: true,
+    media: [],
+    // Added missing properties
     channels: {
       onlineStore: true,
       shop: false,
@@ -97,19 +128,16 @@ export default function ProductAddForm() {
       international: true,
       us: true,
     },
-    category: "",
-    productType: "",
-    vendor: "",
+    productType: ""
   });
 
   const [profit, setProfit] = useState(0);
   const [margin, setMargin] = useState(0);
-  const [mediaFiles, setMediaFiles] = useState([]);
+  const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]); // Added type annotation
   const [activeTab, setActiveTab] = useState("upload");
   const [showSuccess, setShowSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showExistingDialog, setShowExistingDialog] = useState(false);
-
   const [hovering, setHovering] = useState(false);
 
   const handleDragEnter = () => setHovering(true);
@@ -125,60 +153,96 @@ export default function ProductAddForm() {
     content: "",
   });
 
-  const calculateProfitMargin = () => {
-    const price = parseFloat(productData.price) || 0;
-    const cost = parseFloat(productData.cost) || 0;
-
-    const calculatedProfit = price - cost;
-    setProfit(calculatedProfit);
-
-    const calculatedMargin = price > 0 ? (calculatedProfit / price) * 100 : 0;
-    setMargin(calculatedMargin);
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    if (type === "checkbox") {
-      setProductData({ ...productData, [name]: checked });
-    } else {
-      setProductData({ ...productData, [name]: value });
-    }
-
-    if (["price", "cost"].includes(name)) {
-      setTimeout(calculateProfitMargin, 0);
-    }
-  };
-
-  const handleChannelChange = (channel) => {
-    setProductData({
-      ...productData,
+  // Added missing handleChannelChange function
+  const handleChannelChange = (channel: string) => {
+    setProductData(prev => ({
+      ...prev,
       channels: {
-        ...productData.channels,
-        [channel]: !productData.channels[channel],
-      },
-    });
+        ...prev.channels,
+        [channel]: !prev.channels[channel as keyof typeof prev.channels]
+      }
+    }));
   };
 
-  const handleMarketChange = (market) => {
-    setProductData({
-      ...productData,
+  // Added missing handleMarketChange function
+  const handleMarketChange = (market: string) => {
+    setProductData(prev => ({
+      ...prev,
       markets: {
-        ...productData.markets,
-        [market]: !productData.markets[market],
-      },
-    });
+        ...prev.markets,
+        [market]: !prev.markets[market as keyof typeof prev.markets]
+      }
+    }));
   };
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const prepareMediaFiles = () => {
+    return mediaFiles.map((file, index) => ({
+      file_url: file.preview,
+      file_type: file.type,
+      alt_text: file.name,
+      position: index
+    }));
+  };
 
-  const handleUploadClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ""; // لإعادة رفع نفس الملف إذا لزم الأمر
-      fileInputRef.current.click();
+  const handleSubmit = async () => {
+    if (isSubmitting) return;
+
+    try {
+      setIsSubmitting(true);
+
+      if (!productData.title) {
+        toast.error("Please enter a product title");
+        return;
+      }
+
+      if (!productData.tenant_id) {
+        toast.error("Store information is missing");
+        return;
+      }
+
+      const finalProductData = {
+        ...productData,
+        price: parseFloat(productData.price.toString()) || 0,
+        price_discount: parseFloat(productData.price_discount?.toString() || "0"),
+        inventory_quantity: parseInt(productData.inventory_quantity.toString()),
+        available_quantity: parseInt(productData.available_quantity.toString()),
+        media: prepareMediaFiles()
+      };
+
+      const result = await createProduct(finalProductData);
+
+      if (result) {
+        toast.success("Product created successfully!");
+        router.push('/dashboard/products');
+      }
+
+    } catch (error) {
+      console.error("Error adding product:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to add product");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleMediaUpload = (e) => {
+  const handleInputChange = (e: any) => {
+    const { name, value, type, checked } = e.target;
+    setProductData(prev => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : 
+              type === "number" ? parseFloat(value) || 0 : value
+    }));
+  };
+
+  const handleDescriptionChange = (content: string) => {
+    setProductData(prev => ({
+      ...prev,
+      description: content
+    }));
+  };
+
+  const handleMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    
     const files = Array.from(e.target.files);
     const newFiles = files.map((file) => ({
       id: Math.random().toString(36).substr(2, 9),
@@ -190,59 +254,14 @@ export default function ProductAddForm() {
     setMediaFiles([...mediaFiles, ...newFiles]);
   };
 
-  const removeMedia = (id) => {
+  const removeMedia = (id: string) => {
     setMediaFiles(mediaFiles.filter((file) => file.id !== id));
   };
 
-  const handleSubmit = async () => {
-    if (isSubmitting) return;
-
-    try {
-      setIsSubmitting(true);
-
-      // Validate required fields
-      if (!productData.title) {
-        alert("Please enter a product title");
-        return;
-      }
-
-      // Create form data to handle both text and files
-      const formData = new FormData();
-
-      // Add product data
-      formData.append("productData", JSON.stringify(productData));
-
-      // Add media files
-      mediaFiles.forEach((file) => {
-        formData.append("media", file);
-      });
-
-      // Make API call
-      const response = await fetch("/api/products", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to add product");
-      }
-
-      // Show success message
-      setShowSuccess(true);
-
-      // Clear form or redirect
-      // setProductData({ ...initialProductState });
-      // router.push('/products');
-
-      // Hide success message after 5 seconds
-      setTimeout(() => {
-        setShowSuccess(false);
-      }, 5000);
-    } catch (error) {
-      console.error("Error adding product:", error);
-      alert("Failed to add product. Please try again.");
-    } finally {
-      setIsSubmitting(false);
+  const handleUploadClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
     }
   };
 
@@ -280,9 +299,9 @@ export default function ProductAddForm() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content - Left Section */}
+        
           <div className="lg:col-span-2 space-y-6">
-            {/* Title Card */}
+        
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <div className="mb-4">
                 <label
@@ -307,8 +326,9 @@ export default function ProductAddForm() {
               </h2>
 
              <div className="border border-gray-300 rounded-md overflow-hidden bg-white">
-                <ProductDescriptionEditor editor={editor} />
-               
+             <ProductDescriptionEditor 
+           onDescriptionChange={handleDescriptionChange}
+          />
               </div> 
             </div>
 
@@ -405,8 +425,158 @@ export default function ProductAddForm() {
 
             <Model3DUpload />
 
+           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                 <h2 className="font-[500] text-[20px] text-gray-800 mb-2">Pricing</h2>
            
-              <PricingComponent />
+                 <div className="space-y-6">
+                   <div className="flex">
+                     <div className="mr-[29px]">
+                       <label
+                         htmlFor="price"
+                         className="block text-[16px] font-[400] font-normal text-gray-700 mb-2"
+                       >
+                         Price
+                       </label>
+                       <SimpleInput
+                         type="text"
+                         id="price"
+                         name="price"
+                         value={productData.price}
+                         onChange={handleInputChange}
+                         placeholder="0.00"
+                         width={200}
+                         height={35}
+                         iconFirst={
+                           <span className="text-black font-semibold text-[16px]">$</span>
+                         }
+                         className="text-[16px]"
+                       />
+                     </div>
+           
+                     <div>
+                       <label
+                         htmlFor="comparePrice"
+                         className="block text-[16px] font-normal font-[400] text-gray-700 mb-2"
+                       >
+                         Compare-price
+                       </label>
+                       <SimpleInput
+                         type="text"
+                         id="comparePrice"
+                         name="price_discount"
+                         value={productData.price_discount}
+                         onChange={handleInputChange}
+                         placeholder="0.00"
+                         width={200}
+                         height={35}
+                         iconFirst={
+                           <span className="text-black font-semibold text-[16px]">$</span>
+                         }
+                         iconLast={
+                           <Image
+                             src="/assets/icons/icon_help_hexagon.svg"
+                             alt="Help Icon"
+                             width={24}
+                             height={24}
+                             className="cursor-pointer"
+                           />
+                         }
+                         className="text-[16px] pr-2"
+                       />
+                     </div>
+                   </div>
+           
+                   <div className="py-2">
+                     <div className="flex items-center">
+                       <Checkbox
+                         id="chargeTax"
+                         name="requires_shipping"
+                         checked={productData.requires_shipping}
+                         onCheckedChange={(checked) =>
+                           handleInputChange({
+                             target: {
+                               name: "requires_shipping",
+                               type: "checkbox",
+                               checked,
+                             },
+                           })
+                         }
+                         color="secondary"
+                         
+                         className="rounded-[4px]  h-[20px] w-[20px]"
+                         
+                       />
+                       <label
+                         htmlFor="chargeTax"
+                         className="ml-2 text-sm text-black text-[16px] font-[400] "
+                       >
+                         Charge tax on this product
+                       </label>
+                     </div>
+                   </div>
+           
+                   <div className="grid grid-cols-3 gap-6">
+                     <div>
+                       <label
+                         htmlFor="cost"
+                         className="block text-[16px] font-normal text-gray-700 mb-2"
+                       >
+                         Cost per items
+                       </label>
+                       <div className="relative flex items-center">
+                         <SimpleInput
+                           type="text"
+                           id="cost"
+                           name="discount"
+                           value={productData.discount}
+                           onChange={handleInputChange}
+                           placeholder="0.00"
+                           width={200}
+                           height={45}
+                           iconFirst={
+                             <span className="text-black font-semibold text-[20px]">
+                               $
+                             </span>
+                           }
+                           iconLast={
+                             <Image
+                               src="/assets/icons/icon_help_hexagon.svg"
+                               alt="Help Icon"
+                               width={24}
+                               height={24}
+                               className="cursor-pointer"
+                             />
+                           }
+                           className="text-[20px] text-black"
+                         />
+                       </div>
+                     </div>
+                     <div>
+                       <label className="block text-[16px] font-[400] font-normal text-gray-700 mb-2">
+                         Profit
+                       </label>
+                       <div
+                         className="flex items-center justify-center bg-gray-50 border border-gray-200 rounded-md"
+                         style={{ width: "200px", height: "45px" }}
+                       >
+                         ${profit}
+                       </div>
+                     </div>
+           
+                     <div>
+                       <label className="block text-[16px] font-[400] font-normal text-gray-700 mb-2">
+                         Margin
+                       </label>
+                       <div
+                         className="flex items-center justify-center bg-gray-50 border border-gray-200 rounded-md"
+                         style={{ width: "200px", height: "45px" }}
+                       >
+                         {margin}%
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+               </div>
           
 
             
@@ -420,12 +590,222 @@ export default function ProductAddForm() {
              
        
           </div>
-          <ProductSidebar
-    productData={productData}
-    handleInputChange={handleInputChange}
-    handleChannelChange={handleChannelChange}
-    handleMarketChange={handleMarketChange}
-  />
+          <div className="space-y-6">
+      {/* Status Card */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h2 className="text-[20px] font-[600] text-black mb-4">Status</h2>
+        <div className="relative">
+          <select
+            id="status"
+            name="status"
+            value={productData.status}
+            onChange={handleInputChange}
+            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none"
+          >
+            <option value="active">Active</option>
+            <option value="draft">Draft</option>
+            <option value="archived">Archived</option>
+          </select>
+          <ChevronDown
+            className="absolute right-3 top-3.5 text-gray-500"
+            size={16}
+          />
+        </div>
+      </div>
+
+      {/* Sales Channels */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-[20px] font-[600] text-black ">Publishing</h2>
+          <button className="text-gray-500">
+            <MoreHorizontal size={20} />
+          </button>
+        </div>
+
+        {/* Sales Channels */}
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-gray-700 mb-4">
+            Sales channels
+          </h3>
+          <div className="flex flex-col space-y-4">
+            {" "}
+            {/* Changed to flex-col and increased spacing */}
+            <Checkbox
+              id="onlineStore"
+              checked={productData.channels.onlineStore}
+              onCheckedChange={() => handleChannelChange("onlineStore")}
+              color="secondary"
+              className="rounded-[2px] h-[20px] w-[20px]"
+              labelClassName="text-[16px] text-gray-700"
+              label="Online Store"
+            />
+            <Checkbox
+              id="shop"
+              checked={productData.channels.shop}
+              onCheckedChange={() => handleChannelChange("shop")}
+              color="secondary"
+              className="rounded-[2px] h-[20px] w-[20px]"
+              labelClassName="text-[16px] text-gray-700"
+              label="Shop"
+            />
+            <Checkbox
+              id="pointOfSale"
+              checked={productData.channels.pointOfSale}
+              onCheckedChange={() => handleChannelChange("pointOfSale")}
+              color="secondary"
+              className="rounded-[2px] h-[20px] w-[20px]"
+              labelClassName="text-[16px] text-gray-700"
+              label="Point of Sale"
+            />
+            {!productData.channels.pointOfSale && (
+              <div className="ml-7 text-sm text-[var(--primary-900)]">
+                <p className="text-[var(--primary-900)]">
+                  Point of Sale has not been set up. Finish the
+                  <br />
+                  remaining steps to start selling in person.
+                </p>
+                <a
+                  href="#"
+                  className="text-[var(--primary-900)] font-medium mt-1 block"
+                >
+                  Learn more
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Markets */}
+        <div>
+          <h3 className="text-sm font-medium text-gray-700 mb-2">Markets</h3>
+          <div className="space-y-2">
+            <Checkbox
+              id="international"
+              checked={
+                productData.markets.international && productData.markets.us
+              }
+              onCheckedChange={() => {
+                handleMarketChange("international");
+                handleMarketChange("us");
+              }}
+              color="secondary"
+              className="rounded h-5 w-5"
+              labelClassName="text-base text-gray-700"
+              label="International and United States"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center mb-4">
+          <h2 className="text-xl font-semibold text-gray-800">
+            Product organization
+          </h2>
+          <Info className="ml-1 text-black" size={18} />
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label
+              htmlFor="category"
+              className="block text-black text-[16px] font-[500] mb-1"
+            >
+              Category
+            </label>
+            <SimpleInput
+              type="text"
+              id="category"
+              name="category"
+              value={productData.category}
+              onChange={handleInputChange}
+              width={316}
+              height={43}
+              className="text-[16px]"
+            />
+            <p className="font-[500] text-[16px] text-[var(--primary-900)] mt-1">
+              Determines US tax rates
+            </p>
+          </div>
+
+          <div>
+            <label
+              htmlFor="productType"
+              className="block text-black text-[16px] font-[500] mb-1"
+            >
+              Product type
+            </label>
+            <SimpleInput
+              type="text"
+              id="productType"
+              name="product_type" // Fixed field name to match state
+              value={productData.product_type}
+              onChange={handleInputChange}
+              width={316}
+              height={43}
+              className="text-[16px]"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="vendor"
+              className="block text-black text-[16px] font-[500] mb-1"
+            >
+              Vendor
+            </label>
+            <SimpleInput
+              type="text"
+              id="vendor"
+              name="vendor"
+              value={productData.vendor}
+              onChange={handleInputChange}
+              width={316}
+              height={43}
+              className="text-[16px]"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="collections"
+              className="block text-black text-[16px] font-[500] mb-1"
+            >
+              Collections
+            </label>
+            <SimpleInput
+              type="text"
+              id="collections"
+              name="collections"
+              value={productData.collections}
+              onChange={handleInputChange}
+              width={316}
+              height={43}
+              className="text-[16px]"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="tags"
+              className="block text-black text-[16px] font-[500] mb-1"
+            >
+              Tags
+            </label>
+            <SimpleInput
+              type="text"
+              id="tags"
+              name="tags"
+              value={productData.tags}
+              onChange={handleInputChange}
+              width={316}
+              height={43}
+              className="text-[16px]"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
           {/* Sidebar - Right Section */}
        
         </div>
@@ -498,7 +878,6 @@ export default function ProductAddForm() {
                   onClick={() => {
                     setShowExistingDialog(false);
                     setActiveTab("upload");
-                    // Optionally, focus the upload input if available
                   }}
                   variant="primary"
                 >

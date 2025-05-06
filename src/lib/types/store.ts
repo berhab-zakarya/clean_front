@@ -5,13 +5,15 @@ export interface CreateStoreRequest {
 }
 
 export interface Store {
-  id: string;
-  store_name: string;
+  id: number;
   subdomain: string;
+  store_name: string;
   store_type: string;
   created_at: string;
   is_active: boolean;
-  deployment_status: 'deploying' | 'deployed' | 'failed';
+  deployment_status: string;
+  email?: string;    // Optional since it's not in API response
+  phone?: string;    // Optional since it's not in API response
 }
 
 export interface StoreApiError {

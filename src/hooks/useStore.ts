@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { storesAPI } from '@/lib/api/stores/api';
 import type { CreateStoreRequest, Store } from '@/lib/types/store';
 
 export function useStore() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasStore, setHasStore] = useState<boolean>(false);
+  const [userStore, setUserStore] = useState<Store | null>(null);
 
   const validateSubdomain = (subdomain: string): boolean => {
     // Subdomain must be alphanumeric, optionally with hyphens, 1-63 characters
@@ -41,9 +43,39 @@ export function useStore() {
     }
   };
 
+  const checkStoreExistence = useCallback(async () => {
+    try {
+      setLoading(true);
+      const stores = await storesAPI.getStores();
+      console.log('Received stores:', stores);
+
+      // Since the API returns an array, we'll take the first store
+      const store = stores[0];
+      const hasExistingStore = !!store;
+
+      setHasStore(hasExistingStore);
+      if (hasExistingStore) {
+        setUserStore(store);
+      } else {
+        setUserStore(null);
+      }
+
+      return hasExistingStore;
+    } catch (err) {
+      console.error('Store check error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to check store existence');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   return {
     loading,
     error,
+    hasStore,
+    userStore,
     createStore,
+    checkStoreExistence,
   };
 }

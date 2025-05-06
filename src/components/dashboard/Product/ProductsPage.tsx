@@ -1,167 +1,171 @@
+"use client";
 import { useState } from 'react';
 import Link from 'next/link';
+import { Plus, Upload, Search, SlidersHorizontal, Package, Tag, Loader2 } from 'lucide-react';
+import { useProducts } from '@/hooks/useProducts';
 
 export default function ProductsPage() {
-  const [activeTab, setActiveTab] = useState('all');
+  const { products, loading, error } = useProducts();
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredProducts = products.filter(product => 
+    product.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <div className="flex flex-col w-full">
-      {/* Page Header */}
-      <div className="p-4 relative">
-        <div role="status">
-          <p className="sr-only">Produits. Cette page est prête</p>
-        </div>
-        
-        <div className="flex flex-row items-center">
-          <div className="flex items-center">
-            <div className="flex items-center space-x-2">
-              <div className="flex items-center">
-                <span className="text-brand-600">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
-                    <line x1="3" y1="6" x2="21" y2="6"></line>
-                    <path d="M16 10a4 4 0 0 1-8 0"></path>
-                  </svg>
-                </span>
-                <div className="ml-2">
-                  <h1 className="text-xl font-semibold">Produits</h1>
-                </div>
+    <div className="flex flex-col w-full bg-gray-50 min-h-screen">
+      <div className="bg-white border-b px-8 py-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Package className="h-6 w-6 text-blue-600" />
+              <h1 className="text-2xl font-semibold text-gray-900">Products</h1>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                <SlidersHorizontal className="h-4 w-4 mr-2" />
+                Filter
+              </button>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                />
+                <Search className="h-4 w-4 text-gray-400 absolute left-3 top-3" />
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Card Container */}
-      <div className="flex flex-col">
-        <div className="bg-white rounded-lg shadow">
-          {/* Index Filters */}
-          <div className="min-h-12">
-            <div className="flex justify-between px-4">
-              {/* Tabs */}
-              <div className="flex items-center">
-                <div className="flex">
-                  <div className="py-2 px-2">
-                    <div className="flex">
-                      <ul role="tablist" className="flex">
-                        <li role="presentation">
-                          <button 
-                            id="all" 
-                            className={`flex items-center py-1 px-3 text-sm font-medium ${activeTab === 'all' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
-                            role="tab"
-                            aria-selected={activeTab === 'all'}
-                            onClick={() => setActiveTab('all')}
-                          >
-                            <span>All</span>
-                          </button>
-                        </li>
-                      </ul>
+      <div className="max-w-7xl mx-auto w-full px-8 py-8">
+        {loading ? (
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+          </div>
+        ) : error ? (
+          <div className="text-center text-red-600 p-8">{error}</div>
+        ) : products.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="px-8 py-12">
+              <div className="max-w-2xl mx-auto text-center">
+                <Package className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+                <h2 className="text-2xl font-semibold text-gray-900 mb-3">
+                  Start Adding Products
+                </h2>
+                <p className="text-gray-500 mb-8">
+                  Begin building your inventory by adding products that your customers will love.
+                  You can add products manually or import them in bulk.
+                </p>
+                
+                <div className="flex items-center justify-center space-x-4">
+                  <Link 
+                    href="/dashboard/product/productAdd"
+                    className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                  >
+                    <Plus className="h-5 w-5 mr-2" />
+                    <span className="font-medium">Add Product</span>
+                  </Link>
+                  
+                  <button className="inline-flex items-center px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors duration-200">
+                    <Upload className="h-5 w-5 mr-2" />
+                    <span className="font-medium">Import Products</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredProducts.map((product) => (
+                <Link 
+                  href={`/dashboard/product/${product.id}`}
+                  key={product.id}
+                  className="group bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200"
+                >
+                  <div className="aspect-w-16 aspect-h-9 bg-gray-100">
+                    {product.media && product.media[0] ? (
+                      <img
+                        src={product.media[0].file_url}
+                        alt={product.media[0].alt_text || product.title}
+                        className="object-cover w-full h-full"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full">
+                        <Package className="w-8 h-8 text-gray-400" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="p-4">
+                    <div className="flex items-start justify-between">
                       <div>
-                        <button 
-                          id="create-new-view" 
-                          className="flex items-center py-1 px-3 text-sm"
-                          aria-label="Créer une nouvelle vue"
-                        >
-                          <span className="sr-only">Créer une nouvelle vue</span>
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="12" y1="5" x2="12" y2="19"></line>
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                          </svg>
-                        </button>
+                        <h3 className="text-lg font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
+                          {product.title}
+                        </h3>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {product.product_type || 'No category'}
+                        </p>
+                      </div>
+                      <div className="flex items-center">
+                        <Tag className="w-4 h-4 text-gray-400" />
+                        <span className="ml-1 text-lg font-semibold text-gray-900">
+                          ${product.price}
+                        </span>
                       </div>
                     </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center space-x-2">
-                <button
-                  className="p-2 rounded border border-gray-300 text-gray-400 cursor-not-allowed"
-                  aria-label="Rechercher et filtrer les résultats"
-                  aria-disabled="true"
-                >
-                  <div className="flex">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="11" cy="11" r="8"></circle>
-                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-                    </svg>
-                  </div>
-                </button>
-                <button
-                  className="p-2 rounded border border-gray-300 text-gray-400 cursor-not-allowed"
-                  aria-label="Trier les résultats"
-                  aria-disabled="true"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M11 5h10"></path>
-                    <path d="M11 9h7"></path>
-                    <path d="M11 13h4"></path>
-                    <path d="M3 17h18"></path>
-                    <path d="M3 12V5l4 4z"></path>
-                    <path d="M7 5v7"></path>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Main Content - Add Products */}
-          <div className="px-8 py-10">
-            <div className="flex justify-center">
-              <div className="w-full max-w-4xl">
-                <div className="flex justify-between items-center">
-                  <div className="flex flex-col space-y-1">
-                    <h2 className="text-xl font-normal">Ajouter vos produits</h2>
-                    <p className="text-sm text-gray-600">Commencez par ajouter à votre boutique les produits que vos clients vont adorer.</p>
-                    <div className="pt-4">
-                      <div className="flex flex-wrap gap-3">
-                        <Link href="/dashboard/product/productAdd" className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
-                            <line x1="12" y1="5" x2="12" y2="19"></line>
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                          </svg>
-                          <span className="text-sm font-semibold">Ajouter un produit</span>
-                        </Link>
-                        <button className="flex items-center px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
-                            <path d="M3 15v4c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-4M17 8l-5-5-5 5M12 3v12"></path>
-                          </svg>
-                          <span className="text-sm">Importer</span>
-                        </button>
+                    
+                    <div className="mt-4 flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                          ${product.status === 'exists' ? 'bg-green-100 text-green-800' :
+                            product.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-800'}`}>
+                          {product.status}
+                        </span>
+                        {product.inventory_quantity < 10 && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            Low stock
+                          </span>
+                        )}
                       </div>
+                      <span className="text-sm text-gray-500">
+                        Stock: {product.inventory_quantity}
+                      </span>
                     </div>
                   </div>
-                </div>
-              </div>
+                </Link>
+              ))}
             </div>
-          </div>
-        </div>
 
-        {/* Find Products Section */}
-        <div className="bg-gray-50 px-8 py-6">
-          <div className="flex justify-center">
-            <div className="w-full max-w-4xl">
-              <div className="flex flex-col space-y-1">
-                <h3 className="text-lg font-normal">Trouver des produits à vendre</h3>
-                <p className="text-sm text-gray-600">Faites expédier les produits en dropshipping ou en impression à la demande directement du fournisseur à votre client, et ne payez que ce que vous vendez.</p>
-                <div className="pt-3">
-                  <div className="flex flex-wrap gap-2">
-                    <a 
-                      href="https://apps.shopify.com/login/authenticate?shop=0wzn4a-38&login_hint=alaeprop%40gmail.com&url=https%3A%2F%2Fapps.shopify.com%2Fstories%2Fguide-dropshipping%3Fst_campaign%3Dproduct-index%26st_source%3Dadmin-web%26utm_campaign%3Dproduct-index%26utm_source%3Dshopify%26utm_content%3Dfind-products-to-sell" 
-                      rel="noopener noreferrer" 
-                      target="_blank"
-                      className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100 text-sm"
-                    >
-                      Parcourir les applications d'approvisionnement en produits
-                    </a>
-                  </div>
-                </div>
+            {filteredProducts.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-gray-500">No products match your search.</p>
               </div>
-            </div>
+            )}
+          </div>
+        )}
+
+        <div className="mt-8 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-8">
+          <div className="max-w-2xl mx-auto text-center">
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">
+              Discover Products to Sell
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Explore dropshipping and print-on-demand products shipped directly from suppliers to your customers.
+              Only pay for what you sell.
+            </p>
+            <a 
+              href="#" 
+              className="inline-flex items-center px-6 py-3 bg-white text-gray-700 rounded-lg shadow-sm hover:shadow transition-all duration-200"
+            >
+              Explore Product Sourcing Apps
+            </a>
           </div>
         </div>
       </div>

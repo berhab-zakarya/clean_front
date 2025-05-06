@@ -51,4 +51,18 @@ export const productsAPI = {
       throw new Error('Network error while creating product');
     }
   },
+
+  // Get products
+  getProducts: async (): Promise<Product[]> => {
+    try {
+      const response = await api.get<Product[]>('/products/');
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const apiError = error.response?.data as ProductApiError;
+        throw new Error(apiError.message || 'Failed to fetch products');
+      }
+      throw new Error('Network error while fetching products');
+    }
+  },
 };

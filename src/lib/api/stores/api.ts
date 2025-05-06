@@ -4,6 +4,23 @@ import type { StoreApiError } from '@/lib/types/store';
 import axios from 'axios';
 
 export const storesAPI = {
+  getStores: async (): Promise<Store[]> => {
+    try {
+      const response = await api.get<Store[]>('/stores/');
+      console.log('API Response:', response.data);
+      
+      // تأكد من أن البيانات موجودة وصحيحة
+      if (!response.data) {
+        throw new Error('No data received from API');
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error('GetStores Error:', error);
+      // رمي الخطأ للتعامل معه في المستوى الأعلى
+      throw error;
+    }
+  },
   createStore: async (data: CreateStoreRequest): Promise<Store> => {
     try {
       const response = await api.post<Store>('/stores/', data);

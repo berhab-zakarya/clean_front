@@ -311,15 +311,6 @@ export const authAPI = {
     }
   },
 
-  validateToken: async (token: string) => {
-    try {
-      const response = await api.post('/validate-token/', { token });
-      return response.data;
-    } catch (error) {
-      throw new Error('Invalid token');
-    }
-  },
-
   refreshToken: async (refreshToken: string): Promise<AuthResponse> => {
     if (isRefreshing) {
       return new Promise((resolve, reject) => {
@@ -328,33 +319,48 @@ export const authAPI = {
     }
 
     isRefreshing = true;
-    console.log('Attempting to refresh token with:', refreshToken);
     
     try {
-      const response = await api.post<AuthResponse>('/token/refresh/', {
-        refresh: refreshToken
-      });
-      
-      console.log('Refresh response:', response.data);
-      if (response.data.access) {
-        localStorage.setItem('access_token', response.data.access);
-        localStorage.setItem('refresh_token', response.data.refresh);
-        api.defaults.headers.common['Authorization'] = `Bearer ${response.data.access}`;
-        
-        if (response.data.user) {
-          localStorage.setItem('user', JSON.stringify(response.data.user));
+      // تأكد من إرسال التوكن في الهيدر
+      const response = await api.post<AuthResponse>('/token/refresh/', 
+        { refresh: refreshToken },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            // إزالة هيدر Authorization القديم
+            'Authorization': '' 
+          }
         }
-
-        processQueue();
-        return response.data;
+      );
+      
+      if (!response.data.access) {
+        throw new Error('No access token in response');
       }
-      throw new Error('No access token in response');
+
+      // تحديث التوكن في localStorage
+      localStorage.setItem('access_token', response.data.access);
+      localStorage.setItem('refresh_token', response.data.refresh);
+      
+      // تحديث هيدر Authorization
+      api.defaults.headers.common['Authorization'] = `Bearer ${response.data.access}`;
+      
+      if (response.data.user) {
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+      }
+
+      processQueue();
+      return response.data;
+
     } catch (error: any) {
       console.error('Refresh error:', error.response?.data || error.message);
       processQueue(error);
+      
+      // تنظيف البيانات وتسجيل الخروج
       localStorage.clear();
-      isRefreshing = false; // Reset flag before redirecting
+      delete api.defaults.headers.common['Authorization'];
+      isRefreshing = false;
       window.location.href = '/login';
+      
       throw new Error('Could not refresh token');
     } finally {
       isRefreshing = false;
@@ -371,18 +377,15 @@ export const authAPI = {
     }
 
     try {
-      // Instead of validating token, try to use it
-      await api.get('/profile/'); // or any protected endpoint
+      // Try to use the access token
+      await api.get('/profile/');
       return true;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 401) {
         try {
+          // If access token fails, try to refresh
           const response = await authAPI.refreshToken(refreshToken);
-          if (response.access) {
-            localStorage.setItem('access_token', response.access);
-            api.defaults.headers.common['Authorization'] = `Bearer ${response.access}`;
-            return true;
-          }
+          return !!response.access;
         } catch (refreshError) {
           await authAPI.logout();
           return false;
@@ -392,76 +395,21 @@ export const authAPI = {
     }
   },
 
-  // إضافة interceptor للتعامل مع تجديد التوكن تلقائياً
-  setupInterceptors: (navigate: any) => {
-    api.interceptors.response.use(
-      (response) => response,
-      async (error) => {
-        const originalRequest = error.config;
-
-        if (error.response?.status === 401 && !originalRequest._retry) {
-          originalRequest._retry = true;
-
-          try {
-            const refreshToken = localStorage.getItem('refresh_token');
-            if (!refreshToken) {
-              throw new Error('No refresh token available');
-            }
-            
-            const response = await api.post('/token/refresh/', {
-              refresh: refreshToken
-            });
-            
-            localStorage.setItem('access_token', response.data.access);
-            api.defaults.headers.common['Authorization'] = `Bearer ${response.data.access}`;
-            
-            return api(originalRequest);
-          } catch (error) {
-            localStorage.clear();
-            navigate('/login');
-            return Promise.reject(error);
-          }
-        }
-        return Promise.reject(error);
-      }
-    );
-  },
-
-  // أولاً نضيف دالة جديدة للتحقق من حالة المصادقة
   checkAuthStatus: async (): Promise<boolean> => {
     try {
       const user = localStorage.getItem('user');
       const accessToken = localStorage.getItem('access_token');
       const refreshToken = localStorage.getItem('refresh_token');
 
-      // التحقق من وجود البيانات الأساسية
       if (!user || !accessToken || !refreshToken) {
         return false;
       }
 
-      // محاولة التحقق من صلاحية التوكن
-      try {
-        await api.post('/validate-token/', { token: accessToken });
-        return true;
-      } catch (error) {
-        // إذا كان التوكن منتهي الصلاحية، نحاول تجديده
-        try {
-          const response = await authAPI.refreshToken(refreshToken);
-          if (response.access) {
-            localStorage.setItem('access_token', response.access);
-            api.defaults.headers.common['Authorization'] = `Bearer ${response.access}`;
-            return true;
-          }
-        } catch (refreshError) {
-          // إذا فشل تجديد التوكن، نقوم بتسجيل الخروج
-          await authAPI.logout();
-          return false;
-        }
-      }
+      // Try to use current token or refresh it
+      return await authAPI.validateSession();
     } catch (error) {
       return false;
     }
-    return false;
   },
 
   initializeAuth: async (router: any) => {

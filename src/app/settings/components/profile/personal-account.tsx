@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
 import { useUser } from '@/hooks/useUser';
+import { useStore } from '@/hooks/useStore';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,15 +17,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Upload, X, Moon, Sun, CheckCircle2, AlertCircle } from "lucide-react"
 import { toast } from "react-toastify";
 import { Alert } from "@/components/common/feedback/Alert";
+import { storesAPI } from "@/lib/api/stores/api";
 
 export default function PersonalAccount() {
   const { userData, loading, error: userError, isUpdating, updateProfile } = useUser();
+  const { userStore, loading: storeLoading } = useStore();
   const [formData, setFormData] = useState({
     business_name: '',
     business_address: '',
     phone_number: '',
     tax_identification: '',
     bio: ''
+  });
+  const [storeFormData, setStoreFormData] = useState({
+    store_name: '',
+    store_email: '',
+    store_phone: ''
   });
   const [avatarUrl, setAvatarUrl] = useState<string>(
     userData?.user?.profile?.profile_image_url || "/images/placeholder-user.jpg"
@@ -52,6 +60,16 @@ export default function PersonalAccount() {
       }
     }
   }, [userData]);
+
+  useEffect(() => {
+    if (userStore) {
+      setStoreFormData({
+        store_name: userStore.store_name || '',
+        store_email: userStore.email || '',
+        store_phone: userStore.phone || ''
+      });
+    }
+  }, [userStore]);
 
   useEffect(() => {
     console.log('userData changed:', userData);
@@ -130,10 +148,41 @@ export default function PersonalAccount() {
     }));
   };
 
+  const handleStoreUpdate = async () => {
+    try {
+      if (!userStore?.id) {
+        toast.error('Store information not found');
+        return;
+      }
+
+      // تحديث بيانات المتجر
+      await storesAPI.updateStore(userStore.id, storeFormData);
+      
+      // إغلاق النافذة المنبثقة
+      setIsProfileModalOpen(false);
+      
+      // عرض رسالة نجاح
+      toast.success('Store information updated successfully');
+      
+      // تحديث البيانات المعروضة
+      const updatedStore = await storesAPI.getStores();
+      if (updatedStore) {
+        setStoreFormData({
+          store_name: updatedStore.store_name || '',
+          store_email: updatedStore.email || '',
+          store_phone: updatedStore.phone || ''
+        });
+      }
+    } catch (error) {
+      toast.error('Failed to update store information');
+      console.error('Store update error:', error);
+    }
+  };
+
   console.log('Current formData:', formData);
   console.log('Current userData:', userData);
 
-  if (loading) {
+  if (loading || storeLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
@@ -320,19 +369,73 @@ export default function PersonalAccount() {
 
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="text-2xl font-bold tracking-tight text-blue-800 dark:text-blue-400">Shop Information</h3>
+              <h3 className="text-2xl font-bold tracking-tight text-blue-800 dark:text-blue-400">
+                Shop Information {storeLoading && '(Loading...)'}
+              </h3>
             </div>
-            <p className="text-sm text-muted-foreground dark:text-gray-400">
-            Configure your store information that will be visible to your customers.
-            </p>
+            
+            {userStore ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div className="space-y-2">
+                  <Label className="text-sm text-gray-500 dark:text-gray-400">Store Name</Label>
+                  <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-md">
+                    {userStore.store_name || 'Not set'}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm text-gray-500 dark:text-gray-400">Subdomain</Label>
+                  <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-md">
+                    {userStore.subdomain || 'Not set'}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm text-gray-500 dark:text-gray-400">Store Type</Label>
+                  <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-md">
+                    {userStore.store_type || 'Not set'}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm text-gray-500 dark:text-gray-400">Store Status</Label>
+                  <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-md flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${userStore.is_active ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                    {userStore.is_active ? 'Active' : 'Inactive'}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm text-gray-500 dark:text-gray-400">Deployment Status</Label>
+                  <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-md">
+                    {userStore.deployment_status || 'Not set'}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm text-gray-500 dark:text-gray-400">Created At</Label>
+                  <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-md">
+                    {new Date(userStore.created_at).toLocaleDateString() || 'Not set'}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-md text-center">
+                {storeLoading ? (
+                  <div className="animate-pulse">Loading store information...</div>
+                ) : (
+                  <div className="text-gray-500">No store information available</div>
+                )}
+              </div>
+            )}
           </div>
         </CardContent>
-        <CardFooter className="flex justify-end gap-2">
+        <CardFooter className="flex justify-end gap-2 pt-6">
           <Button
             onClick={() => setIsProfileModalOpen(true)}
             className="bg-orange-500 hover:bg-orange-600 text-white dark:bg-orange-600 dark:hover:bg-orange-700"
           >
-            Edit Store
+            Edit Store Details
           </Button>
         </CardFooter>
       </Card>
@@ -340,32 +443,56 @@ export default function PersonalAccount() {
       <Dialog open={isProfileModalOpen} onOpenChange={setIsProfileModalOpen}>
         <DialogContent className="sm:w-[655px] h-[450px] max-h-[450px] p-5 dark:bg-gray-800 dark:text-white dark:border-gray-700" style={{ maxWidth: "655px", width: "655px", height: "450px" }}>
           <DialogHeader className="flex justify-between items-left">
-            <DialogTitle className="text-lg font-medium text-blue-800 dark:text-blue-400">Edit Profile </DialogTitle>
-            <button onClick={() => setIsProfileModalOpen(false)} className="text-gray-400 dark:text-gray-300">
-            </button>
+            <DialogTitle className="text-lg font-medium text-blue-800 dark:text-blue-400">Edit Store Details</DialogTitle>
           </DialogHeader>
           <div className="py-2">
             <p className="text-sm text-gray-500 dark:text-gray-300 mb-6">
-            These details may be publicly available. Do not use your personal information.
+            These details will be displayed on your store's website.
             </p>
 
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="shopName" className="text-sm font-normal dark:text-gray-300">Store Name</Label>
-                  <Input id="shopName" className="border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Appears on your website</p>
+                  <Label htmlFor="store_name" className="text-sm font-normal dark:text-gray-300">Store Name</Label>
+                  <Input 
+                    id="store_name"
+                    value={storeFormData.store_name}
+                    onChange={(e) => setStoreFormData(prev => ({
+                      ...prev,
+                      store_name: e.target.value
+                    }))}
+                    className="border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Appears on your store website</p>
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="shopPhone" className="text-sm font-normal dark:text-gray-300">Store Phone</Label>
-                  <Input id="shopPhone" type="tel" className="border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+                  <Label htmlFor="store_phone" className="text-sm font-normal dark:text-gray-300">Store Phone</Label>
+                  <Input 
+                    id="store_phone"
+                    type="tel"
+                    value={storeFormData.store_phone}
+                    onChange={(e) => setStoreFormData(prev => ({
+                      ...prev,
+                      store_phone: e.target.value
+                    }))}
+                    className="border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="shopEmail" className="text-sm font-normal dark:text-gray-300">Store Email</Label>
-                <Input id="shopEmail" type="email" className="border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+                <Label htmlFor="store_email" className="text-sm font-normal dark:text-gray-300">Store Email</Label>
+                <Input 
+                  id="store_email"
+                  type="email"
+                  value={storeFormData.store_email}
+                  onChange={(e) => setStoreFormData(prev => ({
+                    ...prev,
+                    store_email: e.target.value
+                  }))}
+                  className="border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   Receives messages about your store. For contact email address
                 </p>
@@ -378,13 +505,13 @@ export default function PersonalAccount() {
               onClick={() => setIsProfileModalOpen(false)} 
               className="rounded-full px-6 py-2 text-black bg-white border border-gray-300 hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-600"
             >
-              Annuler
+              Cancel
             </Button>
             <Button 
-              onClick={() => setIsProfileModalOpen(false)}
+              onClick={handleStoreUpdate}
               className="rounded-full px-6 py-2 text-white bg-blue-800 hover:bg-orange-600 dark:bg-blue-700 dark:hover:bg-orange-600"
             >
-              Enregistrer
+              Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>

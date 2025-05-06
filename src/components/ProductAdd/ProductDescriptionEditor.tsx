@@ -3,16 +3,18 @@ import { useRef, useEffect, useState } from "react";
 import { useProductDescription } from "@/hooks/useProductDescription";
 import { Sparkles } from "lucide-react"; 
 
-export default function ProductDescriptionEditor() {
+interface ProductDescriptionEditorProps {
+  onDescriptionChange?: (content: string) => void;
+}
+
+export default function ProductDescriptionEditor({ onDescriptionChange }: ProductDescriptionEditorProps) {
   const editorRef = useRef<any>(null);
   const { loading, description, error, generate } = useProductDescription();
-
 
   const [open, setOpen] = useState(false);
   const [characteristics, setCharacteristics] = useState("");
   const [keywords, setKeywords] = useState("");
 
-  
   useEffect(() => {
     if (description && editorRef.current) {
       editorRef.current.setContent(description);
@@ -27,6 +29,10 @@ export default function ProductDescriptionEditor() {
       keywords: keywords,
     });
     setOpen(false);
+  };
+
+  const handleEditorChange = (content: string) => {
+    onDescriptionChange?.(content);
   };
 
   return (
@@ -95,6 +101,7 @@ export default function ProductDescriptionEditor() {
         apiKey="2wgwudekky0t8rfj7j0et4hk5jljft4ryqfzo4fxpwawi9px"
         onInit={(evt, editor) => (editorRef.current = editor)}
         initialValue=""
+        onEditorChange={handleEditorChange}
         init={{
           directionality: "ltr",
           language: "en",
