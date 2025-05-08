@@ -19,7 +19,7 @@ export const LaptopSection = () => {
               src={`/assets/images/partners/ptr_${n}.png`}
               alt={`Partner ${n}`}
               width={100}
-              height={50}
+              height={60}
             />
           ))}
         </div>

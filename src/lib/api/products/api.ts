@@ -22,33 +22,60 @@ export const productsAPI = {
   // Create product
   createProduct: async (data: CreateProductRequest): Promise<Product> => {
     try {
-      const response = await api.post<Product>('/products/', data);
+      // Add request data logging
+      console.log('Making product creation request with data:', {
+        ...data,
+        media: data.media?.length || 0, // Log media count instead of full data
+      });
+
+      const response = await api.post<Product>('/products/', data, {
+        headers: {
+          'Content-Type': 'application/json',
+          // Ensure auth token is present
+          Authorization: `Bearer ${localStorage.getItem('access_token')}`
+        }
+      });
+
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        const apiError = error.response?.data as ProductApiError;
-        console.error('Product creation error:', {
+        // Log the full error response
+        console.error('Product API Error:', {
           status: error.response?.status,
-          data: error.response?.data
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          headers: error.response?.headers
         });
 
-        // Handle specific field errors
-        if (apiError.errors) {
-          const fieldErrors = Object.entries(apiError.errors)
-            .map(([field, errors]) => `${field}: ${errors.join(', ')}`)
-            .join('\n');
-          throw new Error(`Validation errors:\n${fieldErrors}`);
+        const apiError = error.response?.data as ProductApiError;
+
+        // Handle 500 error specifically
+        if (error.response?.status === 500) {
+          throw new Error('Server error occurred. Please try again or contact support.');
         }
 
-        // Handle general errors
-        const errorMessage = 
-          apiError?.message || 
-          apiError?.detail ||
-          'Failed to create product';
+        // Handle validation errors
+        if (apiError.errors) {
+          const errorDetails: Record<string, string[]> = {};
+          Object.entries(apiError.errors).forEach(([field, messages]) => {
+            errorDetails[field] = Array.isArray(messages) ? messages : [messages.toString()];
+          });
 
-        throw new Error(errorMessage);
+          const error = new Error('Validation failed') as any;
+          error.details = errorDetails;
+          throw error;
+        }
+
+        // Handle other error types
+        throw new Error(
+          apiError?.message || 
+          apiError?.detail || 
+          'Failed to create product'
+        );
       }
-      throw new Error('Network error while creating product');
+
+      // Handle network errors
+      throw new Error('Network error while creating product. Please check your connection.');
     }
   },
 

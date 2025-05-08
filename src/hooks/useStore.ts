@@ -1,12 +1,13 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { storesAPI } from '@/lib/api/stores/api';
 import type { CreateStoreRequest, Store } from '@/lib/types/store';
 
 export function useStore() {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasStore, setHasStore] = useState<boolean>(false);
   const [userStore, setUserStore] = useState<Store | null>(null);
+  const [storeId, setStoreId] = useState<number | null>(null);
 
   const validateSubdomain = (subdomain: string): boolean => {
     // Subdomain must be alphanumeric, optionally with hyphens, 1-63 characters
@@ -32,6 +33,11 @@ export function useStore() {
       }
 
       const store = await storesAPI.createStore(storeData);
+      if (store && store.id) {
+        setStoreId(store.id);
+        setUserStore(store);
+        setHasStore(true);
+      }
       return store;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create store';
@@ -43,39 +49,90 @@ export function useStore() {
     }
   };
 
+  const getStore = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await storesAPI.getCurrentStore();
+      console.log('Store Response:', response); // Debug log
+      
+      if (response && response.id) {
+        setUserStore(response);
+        setStoreId(response.id);
+        setHasStore(true);
+        return response;
+      }
+      return null;
+    } catch (err) {
+      console.error('Get store error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to get store');
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const checkStoreExistence = useCallback(async () => {
     try {
       setLoading(true);
-      const stores = await storesAPI.getStores();
-      console.log('Received stores:', stores);
-
-      // Since the API returns an array, we'll take the first store
-      const store = stores[0];
-      const hasExistingStore = !!store;
-
-      setHasStore(hasExistingStore);
-      if (hasExistingStore) {
+      const store = await storesAPI.getCurrentStore();
+      
+      if (store && store.id) {
         setUserStore(store);
-      } else {
-        setUserStore(null);
+        setStoreId(store.id);
+        setHasStore(true);
+        
+        // Cache the store data
+        localStorage.setItem('userStore', JSON.stringify(store));
+        
+        return true;
       }
-
-      return hasExistingStore;
+      
+      setHasStore(false);
+      setUserStore(null);
+      setStoreId(null);
+      localStorage.removeItem('userStore');
+      return false;
     } catch (err) {
-      console.error('Store check error:', err);
+      console.error('Store existence check failed:', err);
       setError(err instanceof Error ? err.message : 'Failed to check store existence');
+      setHasStore(false);
+      localStorage.removeItem('userStore');
       return false;
     } finally {
       setLoading(false);
     }
   }, []);
 
+  useEffect(() => {
+    const initializeStore = async () => {
+      // Try to get cached store first
+      const cachedStore = localStorage.getItem('userStore');
+      if (cachedStore) {
+        try {
+          const store = JSON.parse(cachedStore);
+          setUserStore(store);
+          setStoreId(store.id);
+          setHasStore(true);
+        } catch (e) {
+          console.error('Failed to parse cached store:', e);
+        }
+      }
+      
+      // Always verify with API
+      await checkStoreExistence();
+    };
+
+    initializeStore();
+  }, [checkStoreExistence]);
+
   return {
     loading,
     error,
     hasStore,
     userStore,
+    storeId,
     createStore,
+    getStore,
     checkStoreExistence,
   };
 }

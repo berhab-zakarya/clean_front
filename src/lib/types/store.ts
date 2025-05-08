@@ -11,9 +11,9 @@ export interface Store {
   store_type: string;
   created_at: string;
   is_active: boolean;
-  deployment_status: string;
-  email?: string;    // Optional since it's not in API response
-  phone?: string;    // Optional since it's not in API response
+  deployment_status: 'deploying' | 'deployed' | 'failed';
+  store_url?: string; // <-- add this
+  message?: string;   // <-- add this
 }
 
 export interface StoreApiError {

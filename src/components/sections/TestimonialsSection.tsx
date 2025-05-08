@@ -7,173 +7,173 @@ const testimonialData = [
   {
     name: "Sarah Johnson",
     handle: "sarahj",
-    image: "/placeholder.svg?height=100&width=100",
+    image: "/assets/images/ourcustomer/comment2.svg",
     description:
       "This product completely transformed our workflow. Highly recommend to anyone looking to improve efficiency!",
   },
   {
     name: "Michael Chen",
     handle: "mchen",
-    image: "/placeholder.svg?height=100&width=100",
+    image: "/assets/images/ourcustomer/comment2.svg",
     description:
       "I've tried many similar solutions, but this one stands out. The interface is intuitive and the support team is amazing.",
   },
   {
     name: "Jessica Williams",
     handle: "jwilliams",
-    image: "/placeholder.svg?height=100&width=100",
+    image: "/assets/images/ourcustomer/comment3.svg",
     description:
       "Game changer for our team! We've seen a 40% increase in productivity since implementing this solution.",
   },
   {
     name: "David Rodriguez",
     handle: "drodriguez",
-    image: "/placeholder.svg?height=100&width=100",
+    image: "/assets/images/ourcustomer/comment1.svg",
     description:
       "The best investment we've made this year. The ROI has been incredible and our clients are happier than ever.",
   },
   {
     name: "Emma Thompson",
     handle: "ethompson",
-    image: "/placeholder.svg?height=100&width=100",
+    image: "/assets/images/ourcustomer/comment5.svg",
     description:
       "Absolutely love the simplicity and power of this tool. It's become an essential part of our daily operations.",
   },
   {
     name: "James Wilson",
     handle: "jwilson",
-    image: "/placeholder.svg?height=100&width=100",
+    image: "/assets/images/ourcustomer/comment6.svg",
     description:
       "If you're on the fence about trying this, just do it. You won't regret it. It's been a complete game-changer for us.",
   },
   {
     name: "Alex Rivera",
     handle: "arivera",
-    image: "/placeholder.svg?height=100&width=100",
+    image: "/assets/images/ourcustomer/comment7.svg",
     description: "The customer service is exceptional. They went above and beyond to help us implement the solution.",
   },
   {
     name: "Olivia Parker",
     handle: "oparker",
-    image: "/placeholder.svg?height=100&width=100",
+    image: "/assets/images/ourcustomer/comment8.svg",
     description:
       "We've cut our processing time in half since using this tool. The analytics features are particularly useful.",
   },
   {
     name: "Daniel Kim",
     handle: "dkim",
-    image: "/placeholder.svg?height=100&width=100",
+    image: "/assets/images/ourcustomer/comment1.svg",
     description:
       "As a small business owner, I was hesitant about the cost, but it's been worth every penny. Highly recommend!",
   },
   {
     name: "Sophia Martinez",
     handle: "smartinez",
-    image: "/placeholder.svg?height=100&width=100",
+    image: "/assets/images/ourcustomer/comment1.svg",
     description: "The integration with our existing systems was seamless. Our team was up and running in no time.",
   },
   {
     name: "Ryan Taylor",
     handle: "rtaylor",
-    image: "/placeholder.svg?height=100&width=100",
+    image: "/assets/images/ourcustomer/comment1.svg",
     description:
       "I appreciate how responsive the development team is to feedback. They're constantly improving the product.",
   },
   {
     name: "Ava Johnson",
     handle: "ajohnson",
-    image: "/placeholder.svg?height=100&width=100",
+    image: "/assets/images/ourcustomer/comment2.svg",
     description:
       "This has streamlined our entire process. What used to take days now takes hours. Incredible time-saver!",
   },
   {
     name: "Ava Johnson",
     handle: "ajohnson",
-    image: "/placeholder.svg?height=100&width=100",
+    image: "/assets/images/ourcustomer/comment2.svg",
     description:
       "This has streamlined our entire process. What used to take days now takes hours. Incredible time-saver!",
   },
   {
     name: "Ava Johnson",
     handle: "ajohnson",
-    image: "/placeholder.svg?height=100&width=100",
+    image: "/assets/images/ourcustomer/comment2.svg",
     description:
       "This has streamlined our entire process. What used to take days now takes hours. Incredible time-saver!",
   },
   {
     name: "Ava Johnson",
     handle: "ajohnson",
-    image: "/placeholder.svg?height=100&width=100",
+    image: "/assets/images/ourcustomer/comment2.svg",
     description:
       "This has streamlined our entire process. What used to take days now takes hours. Incredible time-saver!",
   },
   {
     name: "Ava Johnson",
     handle: "ajohnson",
-    image: "/placeholder.svg?height=100&width=100",
+    image: "/assets/images/ourcustomer/comment2.svg",
     description:
       "This has streamlined our entire process. What used to take days now takes hours. Incredible time-saver!",
   },
   {
     name: "Ava Johnson",
     handle: "ajohnson",
-    image: "/placeholder.svg?height=100&width=100",
+    image: "/assets/images/ourcustomer/comment2.svg",
     description:
       "This has streamlined our entire process. What used to take days now takes hours. Incredible time-saver!",
   },
   {
     name: "Ava Johnson",
     handle: "ajohnson",
-    image: "/placeholder.svg?height=100&width=100",
+    image: "/assets/images/ourcustomer/comment2.svg",
     description:
       "This has streamlined our entire process. What used to take days now takes hours. Incredible time-saver!",
   },
   {
     name: "Ava Johnson",
     handle: "ajohnson",
-    image: "/placeholder.svg?height=100&width=100",
+    image: "/assets/images/ourcustomer/comment2.svg",
     description:
       "This has streamlined our entire process. What used to take days now takes hours. Incredible time-saver!",
   },
   {
     name: "Ava Johnson",
     handle: "ajohnson",
-    image: "/placeholder.svg?height=100&width=100",
+    image: "/assets/images/ourcustomer/comment2.svg",
     description:
       "This has streamlined our entire process. What used to take days now takes hours. Incredible time-saver!",
   },
   {
     name: "Ava Johnson",
     handle: "ajohnson",
-    image: "/placeholder.svg?height=100&width=100",
+    image: "/assets/images/ourcustomer/comment2.svg",
     description:
       "This has streamlined our entire process. What used to take days now takes hours. Incredible time-saver!",
   },
   {
     name: "Ava Johnson",
     handle: "ajohnson",
-    image: "/placeholder.svg?height=100&width=100",
+    image: "/assets/images/ourcustomer/comment2.svg",
     description:
       "This has streamlined our entire process. What used to take days now takes hours. Incredible time-saver!",
   },
   {
     name: "Ava Johnson",
     handle: "ajohnson",
-    image: "/placeholder.svg?height=100&width=100",
+    image: "/assets/images/ourcustomer/comment2.svg",
     description:
       "This has streamlined our entire process. What used to take days now takes hours. Incredible time-saver!",
   },
   {
     name: "Ava Johnson",
     handle: "ajohnson",
-    image: "/placeholder.svg?height=100&width=100",
+    image: "/assets/images/ourcustomer/comment2.svg",
     description:
       "This has streamlined our entire process. What used to take days now takes hours. Incredible time-saver!",
   },
   {
     name: "Ava Johnson",
     handle: "ajohnson",
-    image: "/placeholder.svg?height=100&width=100",
+    image: "/assets/images/ourcustomer/comment2.svg",
     description:
       "This has streamlined our entire process. What used to take days now takes hours. Incredible time-saver!",
   },

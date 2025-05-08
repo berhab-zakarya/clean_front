@@ -9,7 +9,7 @@ const Header = () => {
   const pathname = usePathname();
   return (
     <header className="container mx-auto flex items-center justify-between h-[84px] mt-4 ">
-      <div className="flex items-center cursor-pointer">
+      <div className="flex items-center cursor-pointer relative transition-transform duration-300 hover:rotate-2">
         <Logo />
       </div>
       

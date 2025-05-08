@@ -6,20 +6,18 @@ import {
 } from "lucide-react";
 
 import Image from "next/image";
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
-import EditorToolbar from "./EditorToolbar";
-import PricingComponent from "./PricingComponent";
+
 import Model3DUpload from "./Model3DUpload";
 import InventoryManagement from "./InventoryManagement";
 import VariantsComponent from "./VariantsComponent";
 import ShippingComponent from "./ShippingComponent";
 import { Button } from "../common/ButtonModal";
 import { Dialog } from "@headlessui/react";
-import ProductSidebar from "./ProductSidebar";
-import SimpleInput, { Input } from "../common/Input";
+import SimpleInput from "../common/Input";
 import { Checkbox } from "../common/Checkbox";
 import ProductDescriptionEditor from "./ProductDescriptionEditor";
 import { useProduct } from "@/hooks/useProduct";
@@ -95,13 +93,12 @@ function UrlDialogButton() {
 
 export default function ProductAddForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const router = useRouter(); // Added router hook
-  
+  const router = useRouter();
   const { createProduct, loading: productLoading } = useProduct();
-  const { userStore } = useStore();
+  const { storeId, userStore, loading: storeLoading } = useStore();
 
   const [productData, setProductData] = useState({
-    tenant_id: userStore?.id || 0,
+    tenant_id: 0, // Initialize with 0
     title: "",
     description: "",
     price: 0,
@@ -118,7 +115,6 @@ export default function ProductAddForm() {
     available_quantity: 0,
     requires_shipping: true,
     media: [],
-    // Added missing properties
     channels: {
       onlineStore: true,
       shop: false,
@@ -133,7 +129,7 @@ export default function ProductAddForm() {
 
   const [profit, setProfit] = useState(0);
   const [margin, setMargin] = useState(0);
-  const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]); // Added type annotation
+  const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [activeTab, setActiveTab] = useState("upload");
   const [showSuccess, setShowSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -153,7 +149,6 @@ export default function ProductAddForm() {
     content: "",
   });
 
-  // Added missing handleChannelChange function
   const handleChannelChange = (channel: string) => {
     setProductData(prev => ({
       ...prev,
@@ -164,7 +159,6 @@ export default function ProductAddForm() {
     }));
   };
 
-  // Added missing handleMarketChange function
   const handleMarketChange = (market: string) => {
     setProductData(prev => ({
       ...prev,
@@ -174,6 +168,16 @@ export default function ProductAddForm() {
       }
     }));
   };
+
+  useEffect(() => {
+    if (storeId) {
+      setProductData(prev => ({
+        ...prev,
+        tenant_id: storeId
+      }));
+      console.log('Updated tenant_id:', storeId);
+    }
+  }, [storeId]);
 
   const prepareMediaFiles = () => {
     return mediaFiles.map((file, index) => ({
@@ -189,19 +193,15 @@ export default function ProductAddForm() {
 
     try {
       setIsSubmitting(true);
-
-      if (!productData.title) {
-        toast.error("Please enter a product title");
-        return;
-      }
-
-      if (!productData.tenant_id) {
+      
+      if (!storeId) {
         toast.error("Store information is missing");
         return;
       }
 
       const finalProductData = {
         ...productData,
+        tenant_id: storeId,
         price: parseFloat(productData.price.toString()) || 0,
         price_discount: parseFloat(productData.price_discount?.toString() || "0"),
         inventory_quantity: parseInt(productData.inventory_quantity.toString()),
@@ -209,15 +209,15 @@ export default function ProductAddForm() {
         media: prepareMediaFiles()
       };
 
+      console.log('Submitting product with store ID:', storeId);
       const result = await createProduct(finalProductData);
-
+      
       if (result) {
         toast.success("Product created successfully!");
         router.push('/dashboard/products');
       }
-
     } catch (error) {
-      console.error("Error adding product:", error);
+      console.error("Product creation error:", error);
       toast.error(error instanceof Error ? error.message : "Failed to add product");
     } finally {
       setIsSubmitting(false);
@@ -264,6 +264,16 @@ export default function ProductAddForm() {
       fileInputRef.current.click();
     }
   };
+
+  if (storeLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-[#1E3A8A]">Loading store information...</div>
+      </div>
+    );
+  }
+
+  
 
   return (
     <div className="bg-gray-50 min-h-screen p-4 md:p-8">

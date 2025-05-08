@@ -51,4 +51,20 @@ export const storesAPI = {
       throw new Error('Network error while creating store');
     }
   },
+  getCurrentStore: async (): Promise<Store> => {
+    try {
+      const response = await api.get<Store[]>('/stores/');
+      console.log('Current Store Response:', response.data);
+      
+      if (!response.data || response.data.length === 0) {
+        throw new Error('No store data received');
+      }
+
+      // Return the first store from the array
+      return response.data[0];
+    } catch (error) {
+      console.error('GetCurrentStore Error:', error);
+      throw error;
+    }
+  },
 };

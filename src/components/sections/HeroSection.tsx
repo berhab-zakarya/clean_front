@@ -1,14 +1,14 @@
 "use client"
 import React from 'react'
 import Button from '../common/Button'
-import { chevronRight } from '@/lib/icons'
-import Image from 'next/image'
 import { TypewriterEffectSmooth } from '../ui/typewriter-effect'
 import { words } from '@/lib/constants/ui'
 import ButtonWithIcon from '../common/ButtonLaunch'
 import { ChevronRight } from 'lucide-react'
-
+import { useRouter } from 'next/navigation';
 const HeroSection = () => {
+  const router = useRouter(); // Add router hook
+
   return (
     <div className='flex mt-36 flex-col justify-center items-center'>
          <Button
@@ -32,7 +32,9 @@ const HeroSection = () => {
                 className="w-full md:w-[276px] h-[52px] px-4 rounded-[32px] border border-black focus:outline-none focus:ring-2 focus:ring-black"
               />
               
-              <ButtonWithIcon className="text-sm">
+              <ButtonWithIcon 
+              className="text-sm" 
+               onClick={() => router.push('/singup')}>
                 Launch your store
               
               </ButtonWithIcon>

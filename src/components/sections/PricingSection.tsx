@@ -2,131 +2,14 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion";
 import Button from "../common/Button";
+import { usePlans } from "@/hooks/usePlans";
 
 export const Pricing = () => {
   const [billingCycle, setBillingCycle] = useState("monthly");
+  const { plans, loading, error } = usePlans();
 
-  // Mock data for pricing plans
-  const pricingData:any = {
-    monthly: [
-      {
-        id: 1,
-        title: "Standard",
-        badge: "Most Popular",
-        description: "One request at a time. For companies who need on-going design support.",
-        price: "$4.99",
-        period: "monthly",
-        billingFrequency: "Paid per weekly",
-        features: [
-          "1 request at a time",
-          "Unlimited brands",
-          "Average 48h delivery",
-          "Dedicated designer",
-          "Unlimited revisions",
-          "Figma files included",
-          "Royalty-free assets"
-        ],
-        isPopular: true
-      },
-      {
-        id: 2,
-        title: "Pro",
-        badge: "Best value",
-        description: "Double the requests. For companies with increasing design needs. Limited spots.",
-        price: "$9.99",
-        period: "monthly",
-        billingFrequency: "Paid per weekly",
-        features: [
-          "2 requests at a time",
-          "Priority support",
-          "Average 24h delivery",
-          "Senior designer",
-          "Unlimited revisions",
-          "Source files included",
-          "Custom illustrations"
-        ],
-        isPopular: false
-      },
-      {
-        id: 3,
-        title: "Business",
-        badge: "",
-        description: "Perfect if you want to try the subscription out or only have a few one-off tasks.",
-        price: "$19.99",
-        period: "monthly",
-        billingFrequency: "Paid per weekly",
-        features: [
-          "5 requests at a time",
-          "VIP support",
-          "Average 12h delivery",
-          "Design team access",
-          "Unlimited revisions",
-          "All source files included",
-          "Custom branding strategy"
-        ],
-        isPopular: false
-      }
-    ],
-    yearly: [
-      {
-        id: 1,
-        title: "Standard",
-        badge: "Most Popular",
-        description: "One request at a time. For companies who need on-going design support.",
-        price: "$49.99",
-        period: "yearly",
-        billingFrequency: "Paid per weekly",
-        features: [
-          "1 request at a time",
-          "Unlimited brands",
-          "Average 48h delivery",
-          "Dedicated designer",
-          "Unlimited revisions",
-          "Figma files included",
-          "Royalty-free assets"
-        ],
-        isPopular: true
-      },
-      {
-        id: 2,
-        title: "Pro",
-        badge: "Best value",
-        description: "Double the requests. For companies with increasing design needs. Limited spots.",
-        price: "$99.99",
-        period: "yearly",
-        billingFrequency: "Paid per weekly",
-        features: [
-          "2 requests at a time",
-          "Priority support",
-          "Average 24h delivery",
-          "Senior designer",
-          "Unlimited revisions",
-          "Source files included",
-          "Custom illustrations"
-        ],
-        isPopular: false
-      },
-      {
-        id: 3,
-        title: "Business",
-        badge: "",
-        description: "Perfect if you want to try the subscription out or only have a few one-off tasks.",
-        price: "$199.99",
-        period: "yearly",
-        billingFrequency: "Paid per weekly",
-        features: [
-          "5 requests at a time",
-          "VIP support",
-          "Average 12h delivery",
-          "Design team access",
-          "Unlimited revisions",
-          "All source files included",
-          "Custom branding strategy"
-        ],
-        isPopular: false
-      }
-    ]
-  };
+  // Filter plans based on billing cycle
+  const filteredPlans = plans.filter(plan => plan.frequency === billingCycle);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -159,7 +42,6 @@ export const Pricing = () => {
     }
   };
 
-  // Tab switch animation variants
   const tabContentVariants = {
     hidden: { 
       opacity: 0,
@@ -181,6 +63,22 @@ export const Pricing = () => {
       }
     }
   };
+
+  if (loading) {
+    return (
+      <div className="py-16 flex justify-center items-center">
+        <div className="text-[#2D2E83]">Loading plans...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="py-16 flex justify-center items-center">
+        <div className="text-red-500">Error loading plans: {error.message}</div>
+      </div>
+    );
+  }
 
   return (
     <motion.section 
@@ -245,20 +143,20 @@ export const Pricing = () => {
             variants={tabContentVariants}
             className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto"
           >
-            {pricingData[billingCycle].map((plan:any) => (
+            {filteredPlans.map((plan) => (
               <motion.div 
                 key={plan.id}
                 variants={cardVariants}
                 whileHover="hover"
-                className="border-2 border-blue-800 rounded-xl p-6 flex flex-col h-full
+                className="border-2  border-blue-800 rounded-xl p-6 flex flex-col h-full
                   transform transition-all duration-300 hover:shadow-xl"
               >
                 <div className="mb-6">
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-2xl font-bold text-[#2D2E83]">{plan.title}</h3>
-                    {plan.badge && (
+                    <h3 className="text-2xl font-bold text-[#2D2E83]">{plan.name}</h3>
+                    {(plan.is_popular || plan.is_best_value) && (
                       <span className="bg-orange-500 text-white text-xs font-medium px-3 py-1 rounded-full">
-                        {plan.badge}
+                        {plan.is_popular ? 'Most Popular' : 'Best Value'}
                       </span>
                     )}
                   </div>
@@ -266,14 +164,13 @@ export const Pricing = () => {
                     {plan.description}
                   </p>
                   <div className="mb-4 text-[#2D2E83]">
-                    <span className="text-4xl font-bold">{plan.price}</span>
-                    <span className="text-lg">/{plan.period}</span>
+                    <span className="text-4xl font-bold">{plan.price} DZD</span>
+                    <span className="text-lg">/{plan.frequency}</span>
                   </div>
-                  <div className="text-sm text-gray-600 mb-8">{plan.billingFrequency}</div>
                 </div>
                 
                 <div className="flex-grow space-y-3 mb-6 border-t pt-6">
-                  {plan.features.map((feature:any, idx:number) => (
+                  {plan.features.features.map((feature, idx) => (
                     <div key={idx} className="flex items-center">
                       <span className="text-orange-500 mr-2 text-lg">+</span>
                       <span className="text-[#2D2E83]">{feature}</span>
@@ -291,4 +188,4 @@ export const Pricing = () => {
   );
 }
 
-export default Pricing
+export default Pricing;
