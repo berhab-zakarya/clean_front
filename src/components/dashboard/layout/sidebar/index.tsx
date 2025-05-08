@@ -70,7 +70,7 @@ export default function Sidebar() {
         </div>
 
         <div className="space-y-8">
-          <MainMenu />
+          <MainMenu />logo
           <PreferencesMenu isDarkMode={isDarkMode} toggleDarkMode={() => setIsDarkMode(!isDarkMode)} />
         </div>
       </div>

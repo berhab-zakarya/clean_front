@@ -13,8 +13,8 @@ import {
   handleLoginErrorWithToast,
   showSuccessToast,
 } from "@/utils/handle_errors";
-import Logo from "@/components/common/Logo";
 import { useStore } from "@/hooks/useStore";
+import Header from "@/components/common/Header";
 
 export default function LoginPage() {
   const { login, loading } = useAuth();
@@ -83,15 +83,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-[#f4f5fa] flex flex-col">
       {/* Toast Container - place this once at the top level of your component */}
       <ToastContainer />
 
-      <header className="p-6 ml-15">
-        <div className="relative transition-transform duration-300 hover:rotate-2">
-          <Logo />
-        </div>
-      </header>
+      <Header />
 
       <main className="flex-1 flex items-center">
         <div className="max-w-[1500px] mx-auto w-full grid md:grid-cols-2 gap-8 px-6">
@@ -179,7 +175,7 @@ export default function LoginPage() {
                   </label>
                 </div>
                 <Link
-                  href="/forgot-password"
+                  href="/login/reset-password"
                   className="text-blue-800 hover:underline"
                 >
                   Forgot Password?

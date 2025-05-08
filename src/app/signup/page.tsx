@@ -98,12 +98,12 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-[#f4f5fa] flex flex-col">
       {/* Toast Container */}
       <ToastContainer />
 
-      <header className="p-6 ml-15">
-      <div className="relative transition-transform duration-300 hover:rotate-2">
+      <header className="p-6 bg-white">
+      <div className="max-w-7xl mx-auto w-full">
           <Logo />
         </div>
       </header>
