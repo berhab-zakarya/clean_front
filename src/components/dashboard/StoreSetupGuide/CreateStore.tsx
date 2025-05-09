@@ -94,11 +94,20 @@ export const CreateStore = () => {
           text: "✔ Store deployed successfully!",
           className: "text-green-500",
         });
-        if (url) setStoreUrl(url);
+        
+        if (url) {
+          setStoreUrl(url); // Set the URL first
+          // Add a small delay before opening the URL
+          setTimeout(() => {
+            window.open(url, "_blank");
+          }, 1000);
+        }
+        
+        // Don't redirect to dashboard immediately
         ws.close();
         setTimeout(() => {
           router.push("/dashboard");
-        }, 2000);
+        }, 3000); // Increased timeout to allow seeing the success message
       } else if (status === "failed") {
         addTerminalLine({
           type: "span",
@@ -177,117 +186,136 @@ export const CreateStore = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto mt-16 bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-      {!isDeploying ? (
-        <>
-          <h1 className="text-3xl font-bold text-[#1E3A8A] mb-2 text-center">
-            Create Your Store
-          </h1>
-          <p className="text-gray-500 mb-8 text-center">
-            Start by entering your store name and a unique subdomain.
-          </p>
-        </>
-      ) : (
-        <>
-          <h1 className="text-3xl font-bold text-[#1E3A8A] mb-2 text-center">
-            Deploying Your Store...
-          </h1>
-          <p className="text-gray-500 mb-8 text-center">
-            Please wait while we deploy your store. You will see real-time logs
-            below.
-          </p>
-        </>
-      )}
-      {/* Hide form when deploying */}
-      {!isDeploying && (
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <Input
-              label="Store Name"
-              name="store_name"
-              value={formData.store_name}
-              onChange={handleChange}
-              placeholder="e.g. Alex Shop"
-              required
-              radius="lg"
-              className="text-lg"
-            />
-          </div>
-          <div>
-            <Input
-              label="Subdomain"
-              name="subdomain"
-              value={formData.subdomain}
-              onChange={handleChange}
-              placeholder="e.g. alexshop"
-              required
-              radius="lg"
-              className="text-lg"
-            />
-            <p className="text-xs text-gray-400 mt-1 ml-1">
-              Your store will be available at:{" "}
-              <span className="font-semibold text-[#1E3A8A]">
-                {formData.subdomain || "yourstore"}.algecom.com
+    <div className="relative max-w-2xl mx-auto mt-16 bg-gradient-to-br from-[#e0e7ff] via-white to-[#f0f4ff] rounded-3xl shadow-2xl p-10 border border-gray-200 overflow-hidden">
+      {/* خلفية زخرفية عصرية */}
+      <div className="absolute -top-16 -right-16 w-64 h-64 bg-gradient-to-tr from-[#1E3A8A]/30 via-[#60a5fa]/20 to-[#f0f4ff]/0 rounded-full blur-3xl z-0"></div>
+      <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-gradient-to-br from-[#1E3A8A]/20 via-[#f472b6]/10 to-[#f0f4ff]/0 rounded-full blur-3xl z-0"></div>
+      <div className="relative z-10">
+        {!isDeploying ? (
+          <>
+            <div className="flex flex-col items-center mb-6">
+              <span className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-tr from-[#1E3A8A] to-[#60a5fa] shadow-lg mb-3">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path d="M3 7l9-4 9 4M4 10v6a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 012-2h0a2 2 0 012 2v2a2 2 0 002 2h2a2 2 0 002-2v-6" />
+                </svg>
               </span>
-            </p>
+              <h1 className="text-4xl font-extrabold text-[#1E3A8A] mb-2 text-center drop-shadow-lg">
+                Create Your Store
+              </h1>
+              <p className="text-gray-500 mb-4 text-center text-lg">
+                Start by entering your store name and a unique subdomain.
+              </p>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex flex-col items-center mb-6 animate-pulse">
+              <span className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-tr from-[#1E3A8A] to-[#60a5fa] shadow-lg mb-3">
+                <svg className="w-8 h-8 text-white animate-spin" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" strokeOpacity="0.3" />
+                  <path d="M12 2a10 10 0 0110 10" />
+                </svg>
+              </span>
+              <h1 className="text-4xl font-extrabold text-[#1E3A8A] mb-2 text-center drop-shadow-lg">
+                Deploying Your Store...
+              </h1>
+              <p className="text-gray-500 mb-4 text-center text-lg">
+                Please wait while we deploy your store. You will see real-time logs below.
+              </p>
+            </div>
+          </>
+        )}
+        {/* Hide form when deploying */}
+        {!isDeploying && (
+          <form onSubmit={handleSubmit} className="space-y-8">
+            <div>
+              <Input
+                label="Store Name"
+                name="store_name"
+                value={formData.store_name}
+                onChange={handleChange}
+                placeholder="e.g. Alex Shop"
+                required
+                radius="lg"
+                className="text-lg shadow-md focus:ring-2 focus:ring-[#1E3A8A]/40"
+              />
+            </div>
+            <div>
+              <Input
+                label="Subdomain"
+                name="subdomain"
+                value={formData.subdomain}
+                onChange={handleChange}
+                placeholder="e.g. alexshop"
+                required
+                radius="lg"
+                className="text-lg shadow-md focus:ring-2 focus:ring-[#1E3A8A]/40"
+              />
+              <p className="text-xs text-gray-400 mt-1 ml-1">
+                Your store will be available at:{" "}
+                <span className="font-semibold text-[#1E3A8A]">
+                  {formData.subdomain || "yourstore"}.algecom.com
+                </span>
+              </p>
+            </div>
+            <Button
+              type="submit"
+              loading={loading || storeLoading}
+              className="w-full rounded-full py-3 text-lg font-bold bg-gradient-to-tr from-[#1E3A8A] to-[#60a5fa] text-white shadow-xl hover:scale-105 hover:from-[#2546b3] hover:to-[#3b82f6] transition-all duration-200"
+            >
+              {loading || storeLoading ? "Creating..." : "Create Store"}
+            </Button>
+          </form>
+        )}
+
+        {/* Terminal output */}
+        {terminalLines.length > 0 && (
+          <div
+            className="mt-10 max-h-[70vh] min-h-[250px] overflow-y-auto bg-black/90 rounded-xl p-6 shadow-inner border border-gray-800"
+            ref={terminalScrollRef}
+          >
+            <Terminal>
+              {terminalLines.map((line, idx) =>
+                line.type === "typing" ? (
+                  <TypingAnimation
+                    key={idx}
+                    className={line.className}
+                    delay={idx * 200}
+                  >
+                    {line.text}
+                  </TypingAnimation>
+                ) : (
+                  <AnimatedSpan
+                    key={idx}
+                    className={line.className}
+                    delay={idx * 200 + 100}
+                  >
+                    <span>{line.text}</span>
+                  </AnimatedSpan>
+                )
+              )}
+            </Terminal>
           </div>
-          <Button
-            type="submit"
-            loading={loading || storeLoading}
-            className="w-full rounded-full py-3 text-lg font-semibold bg-[#1E3A8A] hover:bg-[#2546b3] transition"
-          >
-            {loading || storeLoading ? "Creating..." : "Create Store"}
-          </Button>
-        </form>
-      )}
+        )}
 
-      {/* Terminal output */}
-      {terminalLines.length > 0 && (
-        <div
-          className="mt-8 max-h-[70vh] min-h-[250px] overflow-y-auto bg-black rounded-lg p-4"
-          ref={terminalScrollRef}
-        >
-          <Terminal>
-            {terminalLines.map((line, idx) =>
-              line.type === "typing" ? (
-                <TypingAnimation
-                  key={idx}
-                  className={line.className}
-                  delay={idx * 200}
-                >
-                  {line.text}
-                </TypingAnimation>
-              ) : (
-                <AnimatedSpan
-                  key={idx}
-                  className={line.className}
-                  delay={idx * 200 + 100}
-                >
-                  <span>{line.text}</span>
-                </AnimatedSpan>
-              )
-            )}
-          </Terminal>
-        </div>
-      )}
-
-      {/* Show store URL only after deployment */}
-      {storeUrl && (
-        <div className="mt-6 text-center">
-          <span className="text-green-700 font-semibold">
-            Your store is live:
-          </span>
-          <br />
-          <a
-            href={storeUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline text-blue-700 break-all"
-          >
-            {storeUrl}
-          </a>
-        </div>
-      )}
+        {/* Show store URL only after deployment */}
+        {storeUrl && (
+          <div className="mt-8 text-center animate-fade-in">
+            <span className="text-green-700 font-bold text-lg">
+              🎉 Your store is live:
+            </span>
+            <br />
+            <a
+              href={storeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline text-blue-700 break-all text-xl font-semibold hover:text-blue-900 transition"
+            >
+              {storeUrl}
+            </a>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
