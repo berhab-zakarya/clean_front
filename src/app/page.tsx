@@ -22,25 +22,25 @@ export default function Home() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // First check local storage - this is instant
         const accessToken = localStorage.getItem('access_token');
         const refreshToken = localStorage.getItem('refresh_token');
-        
+      
         if (accessToken && refreshToken) {
-          // Start navigation to dashboard immediately if tokens exist
-          // We don't need to wait for API validation to start the navigation
-          router.push('/dashboard');
-          
-          // Optional: Validate in background to refresh tokens if needed
+          // Validate the session before redirecting
           try {
-            await authAPI.validateSession();
+            const isAuthenticated = await authAPI.validateSession();
+            if (isAuthenticated) {
+              router.push('/dashboard');
+            } else {
+              await authAPI.clearAuthData();
+              setIsLoading(false);
+            }
           } catch (error) {
-            // Token validation failed, but we'll let the dashboard handle this
-            // The dashboard's auth protection will redirect back if needed
-            console.warn('Token validation failed in background');
+            console.error('Token validation error:', error);
+            await authAPI.clearAuthData();
+            setIsLoading(false);
           }
         } else {
-          // No tokens found, user can stay on home page
           setIsLoading(false);
         }
       } catch (error) {

@@ -1,27 +1,27 @@
 // services/api.ts
-import axios from 'axios';
+import axios from "axios";
 
 // Add this at the start of the file
 const debug = {
   log: (...args: any[]) => {
-    if (process.env.NODE_ENV !== 'production') {
+    if (process.env.NODE_ENV !== "production") {
       console.log(...args);
     }
   },
   error: (...args: any[]) => {
-    if (process.env.NODE_ENV !== 'production') {
+    if (process.env.NODE_ENV !== "production") {
       console.error(...args);
     }
-  }
+  },
 };
 
 // Change from https to http for local development
-const API_BASE_URL = 'http://127.0.0.1:8000/api/v1';
+const API_BASE_URL = "http://127.0.0.1:8000/api/v1";
 // Create axios instance with base configuration
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
@@ -120,14 +120,15 @@ let isRefreshing = false;
 let failedQueue: Array<{
   resolve: (value?: unknown) => void;
   reject: (reason?: any) => void;
+  config: any;
 }> = [];
 
 const processQueue = (error: any = null) => {
-  failedQueue.forEach(prom => {
+  failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
     } else {
-      prom.resolve();
+      prom.resolve(api(prom.config));
     }
   });
   failedQueue = [];
@@ -136,24 +137,24 @@ const processQueue = (error: any = null) => {
 // Helper function to check if user is logged in
 const isUserLoggedIn = () => {
   return !!(
-    localStorage.getItem('access_token') && 
-    localStorage.getItem('refresh_token') && 
-    localStorage.getItem('user')
+    localStorage.getItem("access_token") &&
+    localStorage.getItem("refresh_token") &&
+    localStorage.getItem("user")
   );
 };
 
 // Add request interceptor to include auth token in requests
 api.interceptors.request.use(
   (config) => {
-    debug.log('Request:', config.method?.toUpperCase(), config.url);
-    const accessToken = localStorage.getItem('access_token');
+    debug.log("Request:", config.method?.toUpperCase(), config.url);
+    const accessToken = localStorage.getItem("access_token");
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
     return config;
   },
   (error) => {
-    debug.error('Request Error:', error);
+    debug.error("Request Error:", error);
     return Promise.reject(error);
   }
 );
@@ -168,51 +169,86 @@ api.interceptors.response.use(
     // 1. Got a 401 error
     // 2. Request hasn't been retried yet
     // 3. User is logged in (has tokens and user data)
+    // 4. It's not a token refresh request itself
     if (
-      error.response?.status === 401 && 
-      !originalRequest._retry && 
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
       isUserLoggedIn() &&
-      originalRequest.url !== '/login/' // Don't retry login requests
+      !originalRequest.url?.includes("/token/refresh/")
     ) {
       originalRequest._retry = true;
 
-      try {
-        const refreshToken = localStorage.getItem('refresh_token');
-        if (!refreshToken) {
-          throw new Error('No refresh token available');
-        }
-
-        if (isRefreshing) {
-          try {
-            await new Promise((resolve, reject) => {
-              failedQueue.push({ resolve, reject });
-            });
-            return api(originalRequest);
-          } catch (err) {
-            return Promise.reject(err);
-          }
-        }
-
+      if (isRefreshing) {
         try {
-          isRefreshing = true;
-          const refreshResponse = await authAPI.refreshToken(refreshToken);
-          isRefreshing = false;
-          if (refreshResponse) {
-            return api(originalRequest);
-          } else {
-            throw new Error('Token refresh failed');
-          }
-        } catch (refreshError) {
-          isRefreshing = false;
-          // If refresh fails, clear everything and redirect
-          await authAPI.clearAuthData();
-          window.location.href = '/login';
-          return Promise.reject(refreshError);
+          return new Promise((resolve, reject) => {
+            failedQueue.push({ resolve, reject, config: originalRequest });
+          });
+        } catch (queueError) {
+          return Promise.reject(queueError);
         }
-      } catch (error) {
-        return Promise.reject(error);
+      }
+
+      isRefreshing = true;
+
+      try {
+        const refreshToken = localStorage.getItem("refresh_token");
+        if (!refreshToken) {
+          throw new Error("No refresh token available");
+        }
+
+        // Use direct axios call to avoid interceptors loop
+        const refreshResponse = await axios.post(
+          `${API_BASE_URL}/token/refresh/`,
+          { refresh: refreshToken },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              // Don't include Authorization header here
+            },
+          }
+        );
+
+        if (refreshResponse.data && refreshResponse.data.access) {
+          // Update tokens in localStorage
+          localStorage.setItem("access_token", refreshResponse.data.access);
+          
+          if (refreshResponse.data.refresh) {
+            localStorage.setItem("refresh_token", refreshResponse.data.refresh);
+          }
+          
+          // Update default headers
+          api.defaults.headers.common["Authorization"] = 
+            `Bearer ${refreshResponse.data.access}`;
+            
+          // Update original request authorization header
+          originalRequest.headers.Authorization = 
+            `Bearer ${refreshResponse.data.access}`;
+            
+          isRefreshing = false;
+          processQueue();
+          
+          // Retry the original request
+          return api(originalRequest);
+        } else {
+          throw new Error("Invalid refresh response");
+        }
+      } catch (refreshError) {
+        isRefreshing = false;
+        processQueue(refreshError);
+        
+        // Clear auth data and redirect to login
+        await authAPI.clearAuthData();
+        
+        // Only redirect to login if we're in a browser environment
+        if (typeof window !== 'undefined') {
+          window.location.href = "/login";
+        }
+        
+        return Promise.reject(refreshError);
       }
     }
+    
+    // For all other errors, just reject the promise
     return Promise.reject(error);
   }
 );
@@ -222,58 +258,61 @@ export const authAPI = {
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
     try {
       // Log the request for debugging (redact sensitive data)
-      debug.log('Sending login request:', {
+      debug.log("Sending login request:", {
         email: credentials.email,
-        password: '[REDACTED]'
+        password: "[REDACTED]",
       });
 
-      const response = await api.post<AuthResponse>('/login/', 
+      const response = await api.post<AuthResponse>(
+        "/login/",
         // Make sure data is properly formatted
         {
           email: credentials.email,
-          password: credentials.password
+          password: credentials.password,
         },
         {
           headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          }
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
         }
       );
 
       // Store tokens and user data in localStorage
       if (response.data.access && response.data.refresh && response.data.user) {
-        localStorage.setItem('access_token', response.data.access);
-        localStorage.setItem('refresh_token', response.data.refresh);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-        
-        api.defaults.headers.common['Authorization'] = `Bearer ${response.data.access}`;
+        localStorage.setItem("access_token", response.data.access);
+        localStorage.setItem("refresh_token", response.data.refresh);
+        localStorage.setItem("user", JSON.stringify(response.data.user));
+
+        api.defaults.headers.common[
+          "Authorization"
+        ] = `Bearer ${response.data.access}`;
       }
 
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
         // Log the error response for debugging
-        debug.error('Login error:', error.response?.data);
-        
+        debug.error("Login error:", error.response?.data);
+
         const data = error.response?.data as ApiError;
-        throw new Error(data?.detail || data?.message || 'Login failed');
+        throw new Error(data?.detail || data?.message || "Login failed");
       }
-      throw new Error('Network error during login');
+      throw new Error("Network error during login");
     }
   },
 
   // Helper method to clear auth data
   clearAuthData: async (): Promise<void> => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user');
-    delete api.defaults.headers.common['Authorization'];
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("user");
+    delete api.defaults.headers.common["Authorization"];
   },
 
   logout: async (): Promise<void> => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem("access_token");
       if (!token) {
         // Already logged out
         return;
@@ -281,37 +320,40 @@ export const authAPI = {
 
       // First try to notify the server
       try {
-        await api.post('/logout/', null, {
+        await api.post("/logout/", null, {
           headers: {
-            'Authorization': `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         });
       } catch (serverError) {
         // Continue with local logout even if server logout fails
-        debug.error('Server logout failed, continuing with local logout:', serverError);
+        debug.error(
+          "Server logout failed, continuing with local logout:",
+          serverError
+        );
       }
-      
+
       // Clear all auth data
       await authAPI.clearAuthData();
     } catch (error) {
       // Still clear auth data even if request fails
       await authAPI.clearAuthData();
-      
+
       if (axios.isAxiosError(error)) {
         const data = error.response?.data as ApiError;
-        throw new Error(data?.detail || data?.message || 'Logout failed');
+        throw new Error(data?.detail || data?.message || "Logout failed");
       }
-      throw new Error('Network error during logout');
+      throw new Error("Network error during logout");
     }
   },
 
   getCurrentUser: (): User | null => {
-    const userStr = localStorage.getItem('user');
+    const userStr = localStorage.getItem("user");
     if (userStr) {
       try {
         return JSON.parse(userStr);
       } catch (e) {
-        debug.error('Error parsing user data:', e);
+        debug.error("Error parsing user data:", e);
         return null;
       }
     }
@@ -320,86 +362,95 @@ export const authAPI = {
 
   signup: async (credentials: SignupData): Promise<AuthResponse> => {
     try {
-      debug.log('Sending signup request:', {
+      debug.log("Sending signup request:", {
         ...credentials,
-        password: '[REDACTED]',
-        password_confirm: '[REDACTED]'
+        password: "[REDACTED]",
+        password_confirm: "[REDACTED]",
       });
 
-      const response = await api.post<AuthResponse>('/register/', credentials, {
+      const response = await api.post<AuthResponse>("/register/", credentials, {
         headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
       });
 
       return response.data;
     } catch (error) {
       // Check for network errors first
       if (!axios.isAxiosError(error)) {
-        throw new Error('Network error during signup');
+        throw new Error("Network error during signup");
       }
-      
-      if (error.code === 'ERR_NETWORK') {
-        throw new Error('Unable to connect to the server. Please check your internet connection.');
+
+      if (error.code === "ERR_NETWORK") {
+        throw new Error(
+          "Unable to connect to the server. Please check your internet connection."
+        );
       }
 
       if (axios.isAxiosError(error) && error.response) {
         const data = error.response.data as ApiError;
-        const errorMessage = data.detail || data.message || 
-          Object.values(data.errors || {}).flat().join(', ') ||
-          'Registration failed';
+        const errorMessage =
+          data.detail ||
+          data.message ||
+          Object.values(data.errors || {})
+            .flat()
+            .join(", ") ||
+          "Registration failed";
         throw new Error(errorMessage);
       }
-      
-      throw new Error('An unexpected error occurred during signup');
+
+      throw new Error("An unexpected error occurred during signup");
     }
   },
 
   refreshToken: async (refreshToken: string): Promise<AuthResponse | null> => {
     // Check if user is logged in before attempting refresh
     if (!isUserLoggedIn()) {
-      debug.log('Not refreshing token: User is not logged in');
+      debug.log("Not refreshing token: User is not logged in");
       return null;
     }
 
     try {
-      const response = await api.post<AuthResponse>('/token/refresh/', 
+      // Use direct axios call to avoid interceptor loops
+      const response = await axios.post<AuthResponse>(
+        `${API_BASE_URL}/token/refresh/`,
         { refresh: refreshToken },
         {
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': '' // Clear auth header for this request
-          }
+            "Content-Type": "application/json",
+            // Don't include Authorization header here
+          },
         }
       );
-      
+
       if (!response.data.access) {
-        throw new Error('No access token in response');
+        throw new Error("No access token in response");
       }
 
       // Update token in localStorage
-      localStorage.setItem('access_token', response.data.access);
-      localStorage.setItem('refresh_token', response.data.refresh);
-      
-      // Update Authorization header
-      api.defaults.headers.common['Authorization'] = `Bearer ${response.data.access}`;
-      
-      if (response.data.user) {
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+      localStorage.setItem("access_token", response.data.access);
+      if (response.data.refresh) {
+        localStorage.setItem("refresh_token", response.data.refresh);
       }
 
-      processQueue();
-      return response.data;
+      // Update Authorization header
+      api.defaults.headers.common[
+        "Authorization"
+      ] = `Bearer ${response.data.access}`;
 
+      if (response.data.user) {
+        localStorage.setItem("user", JSON.stringify(response.data.user));
+      }
+
+      return response.data;
     } catch (error: any) {
-      debug.error('Refresh error:', error.response?.data || error.message);
-      processQueue(error);
-      
+      debug.error("Refresh error:", error.response?.data || error.message);
+
       // Clean up and log out
       await authAPI.clearAuthData();
-      
-      throw new Error('Could not refresh token');
+
+      throw new Error("Could not refresh token");
     }
   },
 
@@ -411,15 +462,15 @@ export const authAPI = {
 
     try {
       // Try to use the access token
-      await api.get('/profile/');
-      return true;
+      const response = await api.get("/profile/");
+      return response.status === 200;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 401) {
         try {
           // If access token fails, try to refresh
-          const refreshToken = localStorage.getItem('refresh_token');
+          const refreshToken = localStorage.getItem("refresh_token");
           if (!refreshToken) return false;
-          
+
           const response = await authAPI.refreshToken(refreshToken);
           return !!response?.access;
         } catch (refreshError) {
@@ -441,7 +492,7 @@ export const authAPI = {
     try {
       return await authAPI.validateSession();
     } catch (error) {
-      debug.error('Auth status check error:', error);
+      debug.error("Auth status check error:", error);
       return false;
     }
   },
@@ -451,60 +502,78 @@ export const authAPI = {
       const isAuthenticated = await authAPI.checkAuthStatus();
       if (isAuthenticated) {
         // If user is logged in, redirect to dashboard
-        router.push('/dashboard');
+        router.push("/dashboard");
         return true;
       }
       return false;
     } catch (error) {
-      debug.error('Auth initialization error:', error);
+      debug.error("Auth initialization error:", error);
       return false;
     }
   },
 
-  updateProfile: async (data: UpdateProfileData): Promise<UserProfileResponse> => {
+  updateProfile: async (
+    data: UpdateProfileData
+  ): Promise<UserProfileResponse> => {
     try {
-      const response = await api.put<UserProfileResponse>('/profile/', data);
-      
+      const response = await api.put<UserProfileResponse>("/profile/", data);
+
       // Update local storage with new user data
       if (response.data.user) {
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        localStorage.setItem("user", JSON.stringify(response.data.user));
       }
-      
+
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const data = error.response?.data as ApiError;
-        throw new Error(data?.detail || data?.message || 'Failed to update profile');
+        throw new Error(
+          data?.detail || data?.message || "Failed to update profile"
+        );
       }
-      throw new Error('Network error during profile update');
+      throw new Error("Network error during profile update");
     }
   },
 
-  changePassword: async (data: ChangePasswordData): Promise<ChangePasswordResponse> => {
+  changePassword: async (
+    data: ChangePasswordData
+  ): Promise<ChangePasswordResponse> => {
     try {
-      const response = await api.post<ChangePasswordResponse>('/change-password/', data);
+      const response = await api.post<ChangePasswordResponse>(
+        "/change-password/",
+        data
+      );
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const data = error.response?.data as ApiError;
-        throw new Error(data?.detail || data?.message || 'Failed to change password');
+        throw new Error(
+          data?.detail || data?.message || "Failed to change password"
+        );
       }
-      throw new Error('Network error during password change');
+      throw new Error("Network error during password change");
     }
   },
 
-  requestPasswordReset: async (email: string): Promise<RequestPasswordResetResponse> => {
+  requestPasswordReset: async (
+    email: string
+  ): Promise<RequestPasswordResetResponse> => {
     try {
-      const response = await api.post<RequestPasswordResetResponse>('/password-reset/request/', {
-        email: email
-      });
+      const response = await api.post<RequestPasswordResetResponse>(
+        "/password-reset/request/",
+        {
+          email: email,
+        }
+      );
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const data = error.response?.data as ApiError;
-        throw new Error(data?.detail || data?.message || 'Failed to send reset email');
+        throw new Error(
+          data?.detail || data?.message || "Failed to send reset email"
+        );
       }
-      throw new Error('Network error during password reset request');
+      throw new Error("Network error during password reset request");
     }
   },
 };

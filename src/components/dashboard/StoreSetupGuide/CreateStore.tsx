@@ -260,6 +260,7 @@ export const CreateStore = () => {
             </div>
             <Button
               type="submit"
+              
               loading={loading || storeLoading}
               className="w-full rounded-full py-3 text-lg font-bold bg-gradient-to-tr from-[#1E3A8A] to-[#60a5fa] text-white shadow-xl hover:scale-105 hover:from-[#2546b3] hover:to-[#3b82f6] transition-all duration-200"
             >
