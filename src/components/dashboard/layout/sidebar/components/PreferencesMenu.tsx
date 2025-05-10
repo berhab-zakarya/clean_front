@@ -1,7 +1,7 @@
 "use client"
 import { usePathname } from 'next/navigation'
 import { MenuItem } from "./MenuItem"
-import { DarkModeToggle } from "./DarkModeToggle"
+
 import { preferencesItems } from "../config/menu-items"
 import { DarkModeToggleProps } from "../types"
 
@@ -26,9 +26,7 @@ export const PreferencesMenu = ({ isDarkMode, toggleDarkMode }: DarkModeTogglePr
             </div>
           )
         })}
-        <div className="transform transition-all duration-300 hover:translate-x-2">
-          <DarkModeToggle isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
-        </div>
+      
       </nav>
     </div>
   )

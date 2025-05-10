@@ -54,7 +54,12 @@ export function useStore() {
       setLoading(true);
       const response = await storesAPI.getCurrentStore();
       console.log('Store Response:', response); // Debug log
-      
+
+      if (response === null) {
+        // User not authenticated, do not set error or clear store
+        return null;
+      }
+
       if (response && response.id) {
         setUserStore(response);
         setStoreId(response.id);
@@ -75,18 +80,23 @@ export function useStore() {
     try {
       setLoading(true);
       const store = await storesAPI.getCurrentStore();
-      
+
+      if (store === null) {
+        // User not authenticated, do not clear store or set error
+        return false;
+      }
+
       if (store && store.id) {
         setUserStore(store);
         setStoreId(store.id);
         setHasStore(true);
-        
+
         // Cache the store data
         localStorage.setItem('userStore', JSON.stringify(store));
-        
+
         return true;
       }
-      
+
       setHasStore(false);
       setUserStore(null);
       setStoreId(null);

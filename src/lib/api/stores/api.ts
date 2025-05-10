@@ -2,9 +2,10 @@ import api from '@/lib/api/api';
 import type { CreateStoreRequest, Store } from '@/lib/types/store';
 import type { StoreApiError } from '@/lib/types/store';
 import axios from 'axios';
-
+import { isLoggedIn } from '@/lib/auth/AuthContext'; 
 export const storesAPI = {
   getStores: async (): Promise<Store[]> => {
+    
     try {
       const response = await api.get<Store[]>('/stores/');
       console.log('API Response:', response.data);
@@ -52,6 +53,7 @@ export const storesAPI = {
     }
   },
   getCurrentStore: async (): Promise<Store> => {
+    
     try {
       const response = await api.get<Store[]>('/stores/');
       console.log('Current Store Response:', response.data);

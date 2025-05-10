@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 
+
 export function DashboardHeader() {
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
@@ -188,6 +189,7 @@ export function DashboardHeader() {
           </DropdownMenu>
         </div>
       </div>
+ 
     </header>
   )
 }
