@@ -2,10 +2,7 @@
 import { Poppins } from 'next/font/google';
 import localFont from 'next/font/local';
 
-export const poppins = Poppins({
-    weight:"500",
 
-  });
 export const revolution = localFont({
   src: '../../public/assets/fonts/revolution.ttf',
   display: 'swap',

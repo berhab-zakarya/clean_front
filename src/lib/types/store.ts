@@ -12,8 +12,8 @@ export interface Store {
   created_at: string;
   is_active: boolean;
   deployment_status: 'deploying' | 'deployed' | 'failed';
-  store_url?: string; // <-- add this
-  message?: string;   // <-- add this
+  store_url?: string;
+  message?: string;
 }
 
 export interface StoreApiError {

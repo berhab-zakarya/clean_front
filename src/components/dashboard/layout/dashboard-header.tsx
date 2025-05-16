@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useUser } from "@/hooks/useUser"
 import { useLogout } from "@/hooks/useLogout"
+import Image from "next/image"
 import { Search, Bell, ChevronDown, Settings, LogOut, ShoppingBag, User, Heart, CheckCheck } from "lucide-react"
 import {
   DropdownMenu,
@@ -15,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
+import { StoreDropdown } from "./store-dropdown"
 
 
 export function DashboardHeader() {
@@ -76,10 +78,14 @@ export function DashboardHeader() {
           <DropdownMenu open={notificationsOpen} onOpenChange={setNotificationsOpen}>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full">
-                <Bell className="h-6 w-6 text-[#828282]" />
-                {unreadCount > 0 && (
-                  <span className="absolute top-0 right-0 h-2.5 w-2.5 rounded-full bg-[#fa8f45]"></span>
-                )}
+                <Image   
+                  src="/assets/icons/sidebar/Notif.svg"
+                  alt="Notification"
+                  width={40}
+                  height={40}
+                  className="opacity-75 group-hover:opacity-100 transition-opacity "
+                  />
+                
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-80">
@@ -118,30 +124,34 @@ export function DashboardHeader() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Store Profile Dropdown */}
           <DropdownMenu open={profileOpen} onOpenChange={setProfileOpen}>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center gap-2 h-auto p-0">
+              <Button variant="ghost" className="flex items-center gap-3 h-auto p-2 hover:bg-[#f3f5f7] rounded-lg transition-all duration-200">
                 {userData?.user?.profile?.profile_image_url ? (
                   <img 
                     src={userData.user.profile.profile_image_url} 
                     alt="Profile" 
-                    className="h-10 w-10 rounded-full object-cover"
+                    className="h-10 w-10 rounded-full object-cover ring-2 ring-[#f3f5f7]"
                   />
                 ) : (
-                  <div className="h-10 w-10 rounded-full bg-[#f97316] flex items-center justify-center text-white font-bold">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#f97316] to-[#ea580c] flex items-center justify-center text-white font-bold shadow-sm">
                     {userData?.user?.email?.charAt(0).toUpperCase() || 'U'}
                   </div>
                 )}
-                <span className="text-[#1e3a8a] font-bold">
-                  {userData?.user?.profile?.business_name || 'Loading...'}
-                </span>
-                <ChevronDown className="h-5 w-5 text-[#828282]" />
+                <div className="flex flex-col items-start">
+                  <span className="text-[#1e3a8a] font-semibold text-sm">
+                    {userData?.user?.profile?.business_name || 'Loading...'}
+                  </span>
+                  <span className="text-[#828282] text-xs">
+                    {userData?.user?.email?.split('@')[0]}
+                  </span>
+                </div>
+                <ChevronDown className="h-4 w-4 text-[#828282] transition-transform duration-200" style={{ transform: profileOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <div className="px-4 py-3">
-                <p className="text-sm font-medium">
+            <DropdownMenuContent align="end" className="w-72 p-2">
+              <div className="px-4 py-4 bg-gradient-to-br from-[#f3f5f7] to-white rounded-lg mb-2">
+                <p className="text-sm font-semibold text-[#1e3a8a]">
                   {userData?.user?.profile?.business_name || userData?.user?.email?.split('@')[0]}
                 </p>
                 <p className="text-xs text-[#828282] mt-1">{userData?.user?.email}</p>
@@ -151,42 +161,45 @@ export function DashboardHeader() {
                   </p>
                 )}
               </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/dashboard/profile">
-                  <User className="mr-2 h-4 w-4" />
-                  <span>Profile Settings</span>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <ShoppingBag className="mr-2 h-4 w-4" />
-                <span>Orders</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Heart className="mr-2 h-4 w-4" />
-                <span>Saved Items</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CheckCheck className="mr-2 h-4 w-4" />
-                <span>Completed Orders</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Link href="/dashboard/settings">
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
+              <DropdownMenuSeparator className="my-2" />
+              <div className="space-y-1">
+                <DropdownMenuItem asChild className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-[#f3f5f7] cursor-pointer transition-colors">
+                  <Link href="/dashboard/profile" className="flex items-center w-full">
+                    <User className="h-4 w-4 text-[#1e3a8a]" />
+                    <span className="text-sm">Profile Settings</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-[#f3f5f7] cursor-pointer transition-colors">
+                  <ShoppingBag className="h-4 w-4 text-[#1e3a8a]" />
+                  <span className="text-sm">Orders</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-[#f3f5f7] cursor-pointer transition-colors">
+                  <Heart className="h-4 w-4 text-[#1e3a8a]" />
+                  <span className="text-sm">Saved Items</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-[#f3f5f7] cursor-pointer transition-colors">
+                  <CheckCheck className="h-4 w-4 text-[#1e3a8a]" />
+                  <span className="text-sm">Completed Orders</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-[#f3f5f7] cursor-pointer transition-colors">
+                  <Link href="/dashboard/settings" className="flex items-center w-full">
+                    <Settings className="h-4 w-4 text-[#1e3a8a]" />
+                    <span className="text-sm">Settings</span>
+                  </Link>
+                </DropdownMenuItem>
+              </div>
+              <DropdownMenuSeparator className="my-2" />
               <DropdownMenuItem 
                 onClick={logout}
                 disabled={isLoggingOut}
-                className="text-red-500 cursor-pointer"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-red-50 cursor-pointer transition-colors text-red-500"
               >
-                <LogOut className={`mr-2 h-4 w-4 ${isLoggingOut ? 'animate-spin' : ''}`} />
-                <span>{isLoggingOut ? 'Logging out...' : 'Log out'}</span>
+                <LogOut className={`h-4 w-4 ${isLoggingOut ? 'animate-spin' : ''}`} />
+                <span className="text-sm">{isLoggingOut ? 'Logging out...' : 'Log out'}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+  
         </div>
       </div>
  

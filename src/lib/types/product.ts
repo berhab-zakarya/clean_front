@@ -6,28 +6,18 @@ export interface ProductMedia {
 }
 
 export interface CreateProductRequest {
-  tenant_id: number;
-  title: string;
+  name: string;
+  slug: string;
   description: string;
-  price: number;
-  price_discount?: number;
-  discount?: number;
-  status: 'exists' | 'draft' | 'archived';
-  category: string;
-  product_type: string;
-  vendor: string;
-  collections: string[];
-  tags: string[];
+  price: string;
+  promotional_price: string;
+  currency: string;
+  stock_quantity: number;
   sku: string;
-  inventory_quantity: number;
-  available_quantity: number;
-  requires_shipping: boolean;
-  media: {
-    file_url: string;
-    file_type: string;
-    alt_text: string;
-    position: number;
-  }[];
+  category: number;
+  is_featured: boolean;
+  status: 'published' | 'draft' | 'archived';
+  has_variants: boolean;
 }
 
 export interface Product extends CreateProductRequest {
@@ -40,4 +30,28 @@ export interface ProductApiError {
   message?: string;
   detail?: string;
   errors?: Record<string, string[]>;
+}
+
+
+
+export interface ProductError {
+  message: string;
+  details?: Record<string, string[]>;
+}
+
+export interface ProductImage {
+  image_url: string;
+  alt_text: string;
+  is_primary: boolean;
+  sort_order: number;
+}
+
+export interface ProductVariant {
+  sku: string;
+  price_adjustment: string;
+  stock_quantity: number;
+  attributes: Array<{
+    attribute_id: number;
+    value_id: number;
+  }>;
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { plansAPI } from '@/lib/api/plans/api'; 
+import { plansAPI } from '@/lib/api/api'; 
 import { Plan, ParsedPlan} from '@/lib/types/plans';
 
 export const usePlans = () => {

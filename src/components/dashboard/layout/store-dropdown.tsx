@@ -1,13 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronDown, Store as StoreIcon, Check } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useStore } from "@/hooks/useStore";
 
 export function StoreDropdown() {
-  const { userStore, hasStore } = useStore();
-  // إذا كان لديك أكثر من متجر، استبدل هذا بمصفوفة المتاجر من useStore
-  const stores = userStore ? [userStore] : [];
+  const { userStore, loading, stores, getAllStores } = useStore();
   const [selectedStore, setSelectedStore] = useState(userStore);
+
+  useEffect(() => {
+    getAllStores();
+  }, [getAllStores]);
+
+  const handleStoreSelect = (store) => {
+    setSelectedStore(store);
+    // Additional logic for store selection if needed
+  };
 
   return (
     <DropdownMenu>
@@ -22,28 +29,46 @@ export function StoreDropdown() {
           <ChevronDown className="w-4 h-4 text-gray-400" />
         </button>
       </DropdownMenuTrigger>
+      
       <DropdownMenuContent align="start" className="w-64 p-0">
         <div className="py-2">
-          {stores.map((store) => (
-            <DropdownMenuItem
-              key={store.id}
-              onClick={() => setSelectedStore(store)}
-              className="flex items-center gap-2 px-4 py-2 cursor-pointer"
-            >
-              <span className="bg-orange-400 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold text-sm">
-                {store.store_name?.charAt(0).toUpperCase()}
-              </span>
-              <span className="flex-1">{store.store_name}</span>
-              {selectedStore?.id === store.id && (
-                <Check className="w-4 h-4 text-primary" />
-              )}
+          {loading ? (
+            <DropdownMenuItem className="px-4 py-2">Loading...</DropdownMenuItem>
+          ) : stores && stores.length > 0 ? (
+            <>
+              {stores.map((store) => (
+                <DropdownMenuItem
+                  key={store.id}
+                  onClick={() => handleStoreSelect(store)}
+                  className="flex items-center gap-2 px-4 py-2 cursor-pointer hover:bg-gray-50"
+                >
+                  <span className="bg-orange-400 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold text-sm">
+                    {store.store_name?.charAt(0).toUpperCase()}
+                  </span>
+                  <span className="flex-1">{store.store_name}</span>
+                  {selectedStore?.id === store.id && (
+                    <Check className="w-4 h-4 text-primary" />
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </>
+          ) : (
+            <DropdownMenuItem className="px-4 py-2 text-gray-500">
+              No stores found
             </DropdownMenuItem>
-          ))}
-          <DropdownMenuItem className="flex items-center gap-2 px-4 py-2 text-gray-700">
+          )}
+
+          <DropdownMenuSeparator />
+          <DropdownMenuItem 
+            className="flex items-center gap-2 px-4 py-2 text-gray-700"
+            onClick={() => handleStoreSelect(null)}
+          >
             <StoreIcon className="w-4 h-4" />
             <span>All stores</span>
+            {selectedStore === null && <Check className="w-4 h-4 text-primary ml-auto" />}
           </DropdownMenuItem>
         </div>
+
         <DropdownMenuSeparator />
         <div className="py-2">
           <DropdownMenuItem className="px-4 py-2">Help Center</DropdownMenuItem>
@@ -52,6 +77,7 @@ export function StoreDropdown() {
           <DropdownMenuItem className="px-4 py-2">Hire a Algecom Partner</DropdownMenuItem>
           <DropdownMenuItem className="px-4 py-2">Keyboard shortcuts</DropdownMenuItem>
         </div>
+
         <DropdownMenuSeparator />
         <div className="px-4 py-2 text-xs text-gray-500 border-t">
           {selectedStore?.email || "store@email.com"}

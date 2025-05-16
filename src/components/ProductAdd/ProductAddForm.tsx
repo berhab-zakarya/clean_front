@@ -23,7 +23,8 @@ import ProductDescriptionEditor from "./ProductDescriptionEditor";
 import { useProduct } from "@/hooks/useProduct";
 import { useStore } from "@/hooks/useStore";
 import { useRouter } from 'next/navigation';
-import { toast } from "react-hot-toast"; // Added missing toast import
+import { toast } from "react-hot-toast";
+import type { ProductVariant } from "@/lib/types/product";
 
 // Fixed type definition for media files
 interface MediaFile {
@@ -94,17 +95,16 @@ function UrlDialogButton() {
 export default function ProductAddForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
-  const { createProduct, loading: productLoading } = useProduct();
-  const { storeId, userStore, loading: storeLoading } = useStore();
+  const { createProduct, addProductImages, addProductVariants } = useProduct();
+  const { storeId, loading: storeLoading } = useStore();
 
   const [productData, setProductData] = useState({
-    tenant_id: 0, // Initialize with 0
     title: "",
     description: "",
     price: 0,
     price_discount: 0,
     discount: 0,
-    status: "exists" as const,
+    status: "published" as const,
     category: "",
     product_type: "",
     vendor: "",
@@ -114,7 +114,6 @@ export default function ProductAddForm() {
     inventory_quantity: 0,
     available_quantity: 0,
     requires_shipping: true,
-    media: [],
     channels: {
       onlineStore: true,
       shop: false,
@@ -123,8 +122,7 @@ export default function ProductAddForm() {
     markets: {
       international: true,
       us: true,
-    },
-    productType: ""
+    }
   });
 
   const [profit, setProfit] = useState(0);
@@ -135,6 +133,7 @@ export default function ProductAddForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showExistingDialog, setShowExistingDialog] = useState(false);
   const [hovering, setHovering] = useState(false);
+  const [variants, setVariants] = useState<ProductVariant[]>([]);
 
   const handleDragEnter = () => setHovering(true);
   const handleDragLeave = () => setHovering(false);
@@ -179,15 +178,6 @@ export default function ProductAddForm() {
     }
   }, [storeId]);
 
-  const prepareMediaFiles = () => {
-    return mediaFiles.map((file, index) => ({
-      file_url: file.preview,
-      file_type: file.type,
-      alt_text: file.name,
-      position: index
-    }));
-  };
-
   const handleSubmit = async () => {
     if (isSubmitting) return;
 
@@ -199,20 +189,43 @@ export default function ProductAddForm() {
         return;
       }
 
+      // Prepare the product data according to CreateProductRequest type
       const finalProductData = {
-        ...productData,
-        tenant_id: storeId,
-        price: parseFloat(productData.price.toString()) || 0,
-        price_discount: parseFloat(productData.price_discount?.toString() || "0"),
-        inventory_quantity: parseInt(productData.inventory_quantity.toString()),
-        available_quantity: parseInt(productData.available_quantity.toString()),
-        media: prepareMediaFiles()
+        name: productData.title,
+        slug: productData.title.toLowerCase().replace(/\s+/g, '-'),
+        description: productData.description,
+        price: productData.price.toString(),
+        promotional_price: productData.price_discount.toString(),
+        currency: "USD",
+        stock_quantity: productData.inventory_quantity,
+        sku: productData.sku,
+        category: parseInt(productData.category) || 1,
+        is_featured: false,
+        status: productData.status,
+        has_variants: variants.length > 0
       };
 
-      console.log('Submitting product with store ID:', storeId);
+      // Create the product
       const result = await createProduct(finalProductData);
       
       if (result) {
+        // If we have media files, add them as product images
+        if (mediaFiles.length > 0) {
+          const productImages = mediaFiles.map((file, index) => ({
+            image_url: file.preview,
+            alt_text: file.name,
+            is_primary: index === 0, // First image is primary
+            sort_order: index + 1
+          }));
+
+          await addProductImages(result.id, productImages);
+        }
+
+        // If the product has variants, add them
+        if (variants.length > 0) {
+          await addProductVariants(result.id, variants);
+        }
+
         toast.success("Product created successfully!");
         router.push('/dashboard/products');
       }
@@ -263,6 +276,30 @@ export default function ProductAddForm() {
       fileInputRef.current.value = '';
       fileInputRef.current.click();
     }
+  };
+
+  const handleAddOption = (option: { id: string; name: string; values: string[] }) => {
+    // Convert option to ProductVariant format
+    const newVariants = option.values.map(value => ({
+      sku: `${productData.sku}-${value}`,
+      price_adjustment: "0.00",
+      stock_quantity: productData.inventory_quantity,
+      attributes: [
+        {
+          attribute_id: parseInt(option.id),
+          value_id: parseInt(value)
+        }
+      ]
+    }));
+
+    setVariants(prev => [...prev, ...newVariants]);
+  };
+
+  const handleRemoveOption = (optionId: string) => {
+    // Remove variants associated with this option
+    setVariants(prev => prev.filter(variant => 
+      !variant.attributes.some(attr => attr.attribute_id === parseInt(optionId))
+    ));
   };
 
   if (storeLoading) {
@@ -594,7 +631,11 @@ export default function ProductAddForm() {
             
               <ShippingComponent />
            
-              <VariantsComponent />
+              <VariantsComponent 
+                onAddOption={handleAddOption}
+                onRemoveOption={handleRemoveOption}
+                initialOptions={[]}
+              />
            
            
              

@@ -2,10 +2,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Plus, Upload, Search, SlidersHorizontal, Package, Tag, Loader2 } from 'lucide-react';
-import { useProducts } from '@/hooks/useProducts';
+import { useProduct } from '@/hooks/useProduct';
 
 export default function ProductsPage() {
-  const { products, loading, error } = useProducts();
+  const { products, loading, error } = useProduct();
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredProducts = products.filter(product => 
@@ -57,7 +57,7 @@ export default function ProductsPage() {
             <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
           </div>
         ) : error ? (
-          <div className="text-center text-red-600 p-8">{error}</div>
+          <div className="text-center text-red-600 p-8">{error.message}</div>
         ) : products.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200">
             <div className="px-8 py-12">

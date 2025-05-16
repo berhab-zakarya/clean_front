@@ -20,7 +20,7 @@ export const AnimatedSpan = ({
     initial={{ opacity: 0, y: -5 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.3, delay: delay / 1000 }}
-    className={cn("grid text-sm font-normal tracking-tight", className)}
+    className={cn("grid text-base font-mono tracking-tight", className)}
     {...props}
   >
     {children}
@@ -83,7 +83,7 @@ export const TypingAnimation = ({
   return (
     <MotionComponent
       ref={elementRef}
-      className={cn("text-sm font-normal tracking-tight", className)}
+      className={cn("text-base font-mono tracking-tight", className)}
       {...props}
     >
       {displayedText}
@@ -100,20 +100,37 @@ export const Terminal = ({ children, className }: TerminalProps) => {
   return (
     <div
       className={cn(
-        "z-0 h-full max-h-full w-full max-w-full rounded-xl border border-border bg-background",
+        "z-0 h-full max-h-full w-full max-w-full rounded-xl border border-white/10 bg-[#0f172a] shadow-2xl",
         className,
       )}
     >
-      <div className="flex flex-col gap-y-2 border-b border-border p-4">
+      {/* Terminal Header */}
+      <div className="flex flex-col gap-y-2 border-b border-white/10 bg-[#1e293b] p-4 rounded-t-xl">
         <div className="flex flex-row gap-x-2">
-          <div className="h-2 w-2 rounded-full bg-red-500"></div>
-          <div className="h-2 w-2 rounded-full bg-yellow-500"></div>
-          <div className="h-2 w-2 rounded-full bg-green-500"></div>
+          <div className="h-3 w-3 rounded-full bg-[#ef4444] shadow-lg shadow-red-500/20"></div>
+          <div className="h-3 w-3 rounded-full bg-[#f59e0b] shadow-lg shadow-yellow-500/20"></div>
+          <div className="h-3 w-3 rounded-full bg-[#10b981] shadow-lg shadow-green-500/20"></div>
+        </div>
+        <div className="mt-2 text-xs text-white/60 font-mono">
+          Terminal - Ready
         </div>
       </div>
-      <pre className="p-4">
-        <code className="grid gap-y-1 overflow-auto">{children}</code>
-      </pre>
+
+      {/* Terminal Content */}
+      <div className="p-4 bg-gradient-to-b from-[#0f172a] to-[#1e293b]">
+        <pre className="overflow-auto">
+          <code className="grid gap-y-2 font-mono text-sm">
+            {children}
+          </code>
+        </pre>
+      </div>
+
+      {/* Terminal Footer */}
+      <div className="border-t border-white/10 bg-[#1e293b] p-2 rounded-b-xl">
+        <div className="text-xs text-white/40 font-mono px-2">
+          Press Ctrl+C to exit
+        </div>
+      </div>
     </div>
   );
 };

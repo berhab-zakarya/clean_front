@@ -8,7 +8,7 @@ const iconComponent = (iconPath: string) => {
         alt="menu icon"
         width={20}
         height={20}
-        className="opacity-75 group-hover:opacity-100 transition-opacity"
+        className="opacity-75 group-hover:opacity-100 transition-opacity "
       />
     )
   }
@@ -30,9 +30,9 @@ export const mainMenuItems = [
     active: false 
   },
   { 
-    icon: iconComponent('/assets/icons/sidebar/invoice.svg'), 
-    text: "Invoices", 
-    href: "/dashboard/invoice", 
+    icon: iconComponent('/assets/icons/sidebar/Customers.svg'), 
+    text: "Customers", 
+    href: "#/dashboard/Customers", 
     active: false 
   },
   { 

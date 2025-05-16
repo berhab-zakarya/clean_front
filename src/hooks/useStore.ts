@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { storesAPI } from '@/lib/api/stores/api';
+import { storesAPI } from '@/lib/api/api';
 import type { CreateStoreRequest, Store } from '@/lib/types/store';
 
 export function useStore() {
@@ -8,6 +8,7 @@ export function useStore() {
   const [hasStore, setHasStore] = useState<boolean>(false);
   const [userStore, setUserStore] = useState<Store | null>(null);
   const [storeId, setStoreId] = useState<number | null>(null);
+  const [stores, setStores] = useState<Store[]>([]);
 
   const validateSubdomain = (subdomain: string): boolean => {
     // Subdomain must be alphanumeric, optionally with hyphens, 1-63 characters
@@ -113,6 +114,23 @@ export function useStore() {
     }
   }, []);
 
+  const getAllStores = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await storesAPI.getStores();
+      if (Array.isArray(response)) {
+        setStores(response);
+      }
+      return response;
+    } catch (err) {
+      console.error('Get all stores error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to get stores');
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     const initializeStore = async () => {
       // Try to get cached store first
@@ -141,8 +159,10 @@ export function useStore() {
     hasStore,
     userStore,
     storeId,
+    stores,
     createStore,
     getStore,
     checkStoreExistence,
+    getAllStores,
   };
 }

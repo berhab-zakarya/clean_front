@@ -2,232 +2,263 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
-import { Button } from "@/components/ui/button"; // Fix Button import
+import { Button } from "@/components/ui/button";
 import SimpleButton from "@/components/common/SimpleButton";
-import { StoreNameDialog } from "@/components/dashboard/StoreSetupGuide/StoreNameDialog";
-import { UpdateProfileDialog } from "@/components/dashboard/StoreSetupGuide/UpdateProfileDialog";
-import { CheckIcon } from "@heroicons/react/24/solid"; // Fix HeroIcons import
+import { CreateStore } from "@/components/dashboard/StoreSetupGuide/CreateStore";
+import { CompleteProfile } from "@/components/dashboard/StoreSetupGuide/CompleteProfile";
+import { CheckIcon } from "@heroicons/react/24/solid";
 
 export default function EcommerceSetupGuide() {
+  const router = useRouter();
   const [showBanner, setShowBanner] = useState(true);
   const [expandedSections, setExpandedSections] = useState({
     setup: true,
-    profile: false,
-    name: true,
-    product: true,
+    profile: true, // First step always open
+    name: false,
+    product: false,
   });
-  const [isStoreNameDialogOpen, setIsStoreNameDialogOpen] = useState(false);
-  const [currentStoreName, setCurrentStoreName] = useState("My Store");
-  const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
+  const [showProfileForm, setShowProfileForm] = useState(false);
+  const [showCreateStore, setShowCreateStore] = useState(false);
   const [completedSteps, setCompletedSteps] = useState({
     profile: false,
     storeName: false,
     products: false,
   });
-  const router = useRouter();
 
   const toggleSection = (section: string) => {
-    setExpandedSections({
-      ...expandedSections,
-      [section]: !expandedSections[section],
-    });
+    // Only allow expanding if previous steps are completed
+    if (section === "name" && !completedSteps.profile) {
+      toast.error("Please complete your profile first");
+      return;
+    }
+    if (section === "product" && !completedSteps.storeName) {
+      toast.error("Please create your store first");
+      return;
+    }
+
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
   };
 
   const handleProfileComplete = () => {
-    setCompletedSteps((prev) => ({
+    setCompletedSteps(prev => ({
       ...prev,
-      profile: true,
+      profile: true
+    }));
+    setShowProfileForm(false);
+    // Automatically open next section
+    setExpandedSections(prev => ({
+      ...prev,
+      name: true,
+      profile: false
     }));
   };
 
-  const handleStoreNameSubmit = (name: string) => {
-    setCurrentStoreName(name);
-    setCompletedSteps((prev) => ({
+  const handleStoreCreated = () => {
+    setCompletedSteps(prev => ({
       ...prev,
-      storeName: true,
+      storeName: true
+    }));
+    setShowCreateStore(false);
+    // Automatically open next section
+    setExpandedSections(prev => ({
+      ...prev,
+      product: true,
+      name: false
     }));
   };
 
-  const completedStepsCount = Object.values(completedSteps).filter(Boolean).length;
+  // Show either CompleteProfile or CreateStore or main content
+  if (showProfileForm) {
+    return <CompleteProfile onComplete={handleProfileComplete} />;
+  }
+
+  if (showCreateStore) {
+    return <CreateStore onComplete={handleStoreCreated} />;
+  }
 
   return (
-    <div className="font-sans max-w-5xl mx-auto">
-      {/* Banner */}
-      {showBanner && (
-        <div className="mt-4 bg-[var(--primary-900)] text-white p-4 flex rounded-[24px] justify-between items-center">
-          <p className="text-[20] font-[500] ml-[24px]">
-            Select a plan to get 3 months for $1/month
-          </p>
-          <div className="flex gap-4 items-center">
-            <SimpleButton
-              title="Select a plan"
-              className="bg-white text-[var(--primary-900)] rounded-full hover:bg-gray-100"
-            />
-            <X
-              className="cursor-pointer"
-              size={24}
-              onClick={() => setShowBanner(false)}
-            />
+    <div className="font-sans">
+      <div className="max-w-5xl mx-auto">
+        {/* Banner */}
+        {showBanner && (
+          <div className="mt-4 bg-gradient-to-r from-[var(--primary-900)] to-[var(--primary-800)] text-white p-4 flex rounded-[24px] justify-between items-center shadow-lg transform hover:scale-[1.01] transition-transform duration-200">
+            <p className="text-[20px] font-[500] ml-[24px]">
+              Select a plan to get 3 months for $1/month
+            </p>
+            <div className="flex gap-4 items-center">
+              <SimpleButton
+                title="Select a plan"
+                className="bg-white text-[var(--primary-900)] rounded-full hover:bg-gray-100 font-semibold px-6 py-2"
+              />
+              <X
+                className="cursor-pointer hover:text-gray-200 transition-colors"
+                size={24}
+                onClick={() => setShowBanner(false)}
+              />
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Main Content */}
-      <div className="p-4">
-        <h1 className="text-[38px] font-[600] text-black mb-2">
-          Start Selling Guide
-        </h1>
-        <p className="text-gray-600 mb-6">
-          Complete these steps to set up your store and start selling
-        </p>
-
-        {/* Setup Guide */}
-        <div className="border border-gray-200 rounded-lg mb-4">
-          <div
-            className="flex justify-between items-center p-4 cursor-pointer"
-            onClick={() => toggleSection("setup")}
-          >
-            <h2 className="text-[20px] font-[600]">Setup guide</h2>
-            {expandedSections.setup ? <ChevronUp /> : <ChevronDown />}
+        <div className="p-4">
+          <div className="mb-8">
+            <h1 className="text-[42px] font-[700] text-gray-900 mb-3 bg-gradient-to-r from-[var(--primary-900)] to-[var(--primary-600)] bg-clip-text text-transparent">
+              Start Selling Guide
+            </h1>
+            <p className="text-gray-600 text-lg">
+              Complete these steps to set up your store and start selling
+            </p>
           </div>
 
-          {expandedSections.setup && (
-            <div className="p-4 pt-0 border-t border-gray-200">
-              <p className="text-gray-600 mb-4">
-                Use this personalized guide to get your store up and running
-              </p>
-              <div className="flex items-center mb-4">
-                <div className="w-6 h-6 rounded-full border border-gray-300 flex items-center justify-center mr-2">
-                  <span className="text-sm">{completedStepsCount}</span>
+          <div className="space-y-6">
+            {/* Profile Section */}
+            <div className={`border border-gray-200 rounded-xl shadow-sm ${!completedSteps.profile ? 'hover:shadow-md' : ''} transition-shadow duration-200 bg-white overflow-hidden ${!completedSteps.profile ? '' : 'opacity-75'}`}>
+              <div
+                className="flex justify-between items-center p-6 cursor-pointer"
+                onClick={() => toggleSection("profile")}
+              >
+                <div className="flex items-center gap-4">
+                  <div
+                    className={`w-10 h-10 rounded-full ${
+                      completedSteps.profile
+                        ? "bg-green-500"
+                        : "bg-[var(--primary-900)]"
+                    } flex items-center justify-center`}
+                  >
+                    {completedSteps.profile ? (
+                      <CheckIcon className="w-6 h-6 text-white" />
+                    ) : (
+                      <span className="text-white font-bold">1</span>
+                    )}
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-900">
+                      Complete Personal Information
+                    </h2>
+                    <p className="text-gray-500 text-sm mt-1">
+                      Set up your business profile to get started
+                    </p>
+                  </div>
                 </div>
-                <span className="text-gray-700">of 3 tasks completed</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Complete Profile Section */}
-        <div className="border border-gray-200 rounded-lg mb-4">
-          <div
-            className="flex justify-between items-center p-4 cursor-pointer"
-            onClick={() => toggleSection("profile")}
-          >
-            <div className="flex items-center">
-              <div
-                className={`w-5 h-5 rounded-full border ${
-                  completedSteps.profile
-                    ? "bg-green-500 border-green-500"
-                    : "border-gray-300"
-                } mr-3 flex items-center justify-center`}
-              >
-                {completedSteps.profile && (
-                  <CheckIcon className="text-white w-3 h-3" />
+                {expandedSections.profile ? (
+                  <ChevronUp className="w-6 h-6 text-gray-400" />
+                ) : (
+                  <ChevronDown className="w-6 h-6 text-gray-400" />
                 )}
               </div>
-              <h2 className="text-[20px] font-[600]">
-                Complete Personal Information
-              </h2>
+              {expandedSections.profile && (
+                <div className="p-6 pt-0 border-t border-gray-100 bg-gray-50">
+                  <Button
+                    onClick={() => setShowProfileForm(true)}
+                    disabled={completedSteps.profile}
+                    className="bg-[var(--primary-900)] text-white hover:bg-[var(--primary-800)] rounded-full px-8 py-3"
+                  >
+                    {completedSteps.profile ? "Profile Completed" : "Complete Profile"}
+                  </Button>
+                </div>
+              )}
             </div>
-            {expandedSections.profile ? <ChevronUp /> : <ChevronDown />}
-          </div>
 
-          {expandedSections.profile && (
-            <div className="p-4 pt-0 border-t border-gray-200">
-              <p className="text-gray-600 mb-6">
-                Complete your personal information before creating your store.
-              </p>
-              <SimpleButton
-                title="Update Profile"
-                onClick={() => setIsProfileDialogOpen(true)}
-                className="bg-[var(--primary-900)] text-white hover:bg-white hover:text-[var(--primary-900)] rounded-full transition-colors"
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Store Name Section */}
-        <div className="border border-gray-200 rounded-lg mb-4">
-          <div
-            className="flex justify-between items-center p-4 cursor-pointer"
-            onClick={() => toggleSection("name")}
-          >
-            <div className="flex items-center">
+            {/* Store Creation Section */}
+            <div className={`border border-gray-200 rounded-xl shadow-sm ${completedSteps.profile && !completedSteps.storeName ? 'hover:shadow-md' : ''} transition-shadow duration-200 bg-white overflow-hidden ${!completedSteps.profile ? 'opacity-50' : ''}`}>
               <div
-                className={`w-5 h-5 rounded-full border ${
-                  completedSteps.storeName
-                    ? "bg-green-500 border-green-500"
-                    : "border-gray-300"
-                } mr-3 flex items-center justify-center`}
+                className="flex justify-between items-center p-6 cursor-pointer"
+                onClick={() => completedSteps.profile && toggleSection("name")}
               >
-                {completedSteps.storeName && (
-                  <CheckIcon className="text-white w-3 h-3" />
+                <div className="flex items-center gap-4">
+                  <div
+                    className={`w-10 h-10 rounded-full ${
+                      completedSteps.storeName
+                        ? "bg-green-500"
+                        : "bg-[var(--primary-900)]"
+                    } flex items-center justify-center`}
+                  >
+                    {completedSteps.storeName ? (
+                      <CheckIcon className="w-6 h-6 text-white" />
+                    ) : (
+                      <span className="text-white font-bold">2</span>
+                    )}
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-900">
+                      Create Your Store
+                    </h2>
+                    <p className="text-gray-500 text-sm mt-1">
+                      Set up your store to personalize your brand
+                    </p>
+                  </div>
+                </div>
+                {expandedSections.name ? (
+                  <ChevronUp className="w-6 h-6 text-gray-400" />
+                ) : (
+                  <ChevronDown className="w-6 h-6 text-gray-400" />
                 )}
               </div>
-              <h2 className="text-[20px] font-[600]">Choose your store name</h2>
+              {expandedSections.name && completedSteps.profile && (
+                <div className="p-6 pt-0 border-t border-gray-100 bg-gray-50">
+                  <Button
+                    onClick={() => setShowCreateStore(true)}
+                    disabled={!completedSteps.profile || completedSteps.storeName}
+                    className="bg-[var(--primary-900)] text-white hover:bg-[var(--primary-800)] rounded-full px-8 py-3"
+                  >
+                    {completedSteps.storeName ? "Store Created" : "Create Store"}
+                  </Button>
+                </div>
+              )}
             </div>
-            {expandedSections.name ? <ChevronUp /> : <ChevronDown />}
-          </div>
 
-          {expandedSections.name && (
-            <div className="p-4 pt-0 border-t border-gray-200">
-              <p className="text-gray-600 mb-6">
-                Your store's temporary name is currently {currentStoreName}. The
-                store name appears in your admin and your online store.
-              </p>
-              <SimpleButton
-                title="Choose store name"
-                onClick={() => setIsStoreNameDialogOpen(true)}
-                className="bg-[var(--primary-900)] text-white hover:bg-white hover:text-[var(--primary-900)] rounded-full transition-colors"
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Add Products Section */}
-        <div className="border border-gray-200 rounded-lg mb-4">
-          <div
-            className="flex justify-between items-center p-4 cursor-pointer"
-            onClick={() => toggleSection("product")}
-          >
-            <div className="flex items-center">
-              <div className="w-5 h-5 rounded-full border border-gray-300 mr-3"></div>
-              <h2 className="text-[20px] font-[600]">Add Products to Your Store</h2>
-            </div>
-            {expandedSections.product ? <ChevronUp /> : <ChevronDown />}
-          </div>
-
-          {expandedSections.product && (
-            <div className="p-4 pt-0 border-t border-gray-200">
-              <p className="text-gray-600 mb-6">
-                Add products to your store with descriptions, photos, and
-                pricing.
-              </p>
-              <Button
-                variant="primary"
-                size="lg"
-                onClick={() => router.push("/dashboard/product")}
-                className="bg-[var(--primary-900)] text-white hover:bg-white hover:text-[var(--primary-900)] rounded-full"
+            {/* Products Section */}
+            <div className={`border border-gray-200 rounded-xl shadow-sm ${completedSteps.storeName ? 'hover:shadow-md' : ''} transition-shadow duration-200 bg-white overflow-hidden ${!completedSteps.storeName ? 'opacity-50' : ''}`}>
+              <div
+                className="flex justify-between items-center p-6 cursor-pointer"
+                onClick={() => completedSteps.storeName && toggleSection("product")}
               >
-                Add Products
-              </Button>
+                <div className="flex items-center gap-4">
+                  <div
+                    className={`w-10 h-10 rounded-full ${
+                      completedSteps.products
+                        ? "bg-green-500"
+                        : "bg-[var(--primary-900)]"
+                    } flex items-center justify-center`}
+                  >
+                    {completedSteps.products ? (
+                      <CheckIcon className="w-6 h-6 text-white" />
+                    ) : (
+                      <span className="text-white font-bold">3</span>
+                    )}
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-900">
+                      Add Products to Your Store
+                    </h2>
+                    <p className="text-gray-500 text-sm mt-1">
+                      Add products to your store with descriptions, photos, and pricing
+                    </p>
+                  </div>
+                </div>
+                {expandedSections.product ? (
+                  <ChevronUp className="w-6 h-6 text-gray-400" />
+                ) : (
+                  <ChevronDown className="w-6 h-6 text-gray-400" />
+                )}
+              </div>
+              {expandedSections.product && completedSteps.storeName && (
+                <div className="p-6 pt-0 border-t border-gray-100 bg-gray-50">
+                  <Button
+                    onClick={() => router.push("/dashboard/product")}
+                    disabled={!completedSteps.storeName}
+                    className="bg-[var(--primary-900)] text-white hover:bg-[var(--primary-800)] rounded-full px-8 py-3"
+                  >
+                    Add Products
+                  </Button>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
-
-      {/* Store Name Dialog */}
-      <StoreNameDialog
-        isOpen={isStoreNameDialogOpen}
-        onClose={() => setIsStoreNameDialogOpen(false)}
-        onSubmit={handleStoreNameSubmit}
-      />
-
-      {/* Update Profile Dialog */}
-      <UpdateProfileDialog
-        isOpen={isProfileDialogOpen}
-        onClose={() => setIsProfileDialogOpen(false)}
-        onComplete={handleProfileComplete}
-      />
     </div>
   );
 }
