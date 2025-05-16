@@ -71,3 +71,12 @@ export type SubscriptionResponse = {
     subscriptionId?: string;
     error?: string;
   }
+
+    export interface FileSystemNode {
+    id: string
+    name: string
+    path: string
+    type: "file" | "folder"
+    children?: FileSystemNode[]
+  }
+  
