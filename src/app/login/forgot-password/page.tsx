@@ -1,3 +1,5 @@
+"use client"
+
 import Image from "next/image"
 import { Mail } from "lucide-react"
 import { useState } from "react"
@@ -6,14 +8,11 @@ import Header from "@/components/common/Header"
 export default function ForgotPassword() {
   
 
-  /*
-
-  --------------------------------------------  API CALLS --------------------------------------------
 
 
 
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isEmailSent, setIsEmailSent] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEmailSent, setIsEmailSent] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -25,7 +24,7 @@ export default function ForgotPassword() {
       setIsEmailSent(true)
     }, 2000)
   }
-*/
+
   return (
     <div className="min-h-screen bg-[#f4f5fa] flex flex-col">
       <Header />
