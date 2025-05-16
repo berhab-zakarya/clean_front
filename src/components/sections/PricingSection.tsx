@@ -148,8 +148,7 @@ export const Pricing = () => {
                 key={plan.id}
                 variants={cardVariants}
                 whileHover="hover"
-                className="border-2  border-blue-800 rounded-xl p-6 flex flex-col h-full
-                  transform transition-all duration-300 hover:shadow-xl"
+                className="border-2 border-blue-800 bg-white rounded-xl p-6 flex flex-col h-full transition-all duration-300 translate-y-1 shadow-[0px_5px_0px_0px_#1E3A8A]"
               >
                 <div className="mb-6">
                   <div className="flex justify-between items-center mb-4">
@@ -170,12 +169,15 @@ export const Pricing = () => {
                 </div>
                 
                 <div className="flex-grow space-y-3 mb-6 border-t pt-6">
-                  {plan.features.features.map((feature, idx) => (
-                    <div key={idx} className="flex items-center">
-                      <span className="text-orange-500 mr-2 text-lg">+</span>
-                      <span className="text-[#2D2E83]">{feature}</span>
-                    </div>
-                  ))}
+                  {Object.entries(plan.features).map(([key, value], idx) => (
+  <div key={idx} className="flex items-center">
+    <span className="text-orange-500 mr-2 text-lg">+</span>
+    <span className="text-[#2D2E83] capitalize">
+      {key} {value!==null && `: ${value}`}
+    </span>
+  </div>
+))}
+
                 </div>
                 
                 <Button className="w-full">Subscribe</Button>

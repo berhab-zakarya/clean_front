@@ -16,41 +16,41 @@ import Newsletter from "@/components/sections/Newsletter";
 
 export default function Home() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Optimized authentication check
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        // First check local storage - this is instant
-        const accessToken = localStorage.getItem('access_token');
-        const refreshToken = localStorage.getItem('refresh_token');
+  // useEffect(() => {
+  //   const checkAuth = async () => {
+  //     try {
+  //       // First check local storage - this is instant
+  //       const accessToken = localStorage.getItem('access_token');
+  //       const refreshToken = localStorage.getItem('refresh_token');
         
-        if (accessToken && refreshToken) {
-          // Start navigation to dashboard immediately if tokens exist
-          // We don't need to wait for API validation to start the navigation
-          router.push('/dashboard');
+  //       if (accessToken && refreshToken) {
+  //         // Start navigation to dashboard immediately if tokens exist
+  //         // We don't need to wait for API validation to start the navigation
+  //         router.push('/dashboard');
           
-          // Optional: Validate in background to refresh tokens if needed
-          try {
-            await authAPI.validateSession();
-          } catch (error) {
-            // Token validation failed, but we'll let the dashboard handle this
-            // The dashboard's auth protection will redirect back if needed
-            console.warn('Token validation failed in background');
-          }
-        } else {
-          // No tokens found, user can stay on home page
-          setIsLoading(false);
-        }
-      } catch (error) {
-        console.error('Auth check error:', error);
-        setIsLoading(false);
-      }
-    };
+  //         // Optional: Validate in background to refresh tokens if needed
+  //         try {
+  //           await authAPI.validateSession();
+  //         } catch (error) {
+  //           // Token validation failed, but we'll let the dashboard handle this
+  //           // The dashboard's auth protection will redirect back if needed
+  //           console.warn('Token validation failed in background');
+  //         }
+  //       } else {
+  //         // No tokens found, user can stay on home page
+  //         setIsLoading(false);
+  //       }
+  //     } catch (error) {
+  //       console.error('Auth check error:', error);
+  //       setIsLoading(false);
+  //     }
+  //   };
 
-    checkAuth();
-  }, [router]);
+  //   checkAuth();
+  // }, [router]);
 
   // Render loading state or content
   if (isLoading) {
