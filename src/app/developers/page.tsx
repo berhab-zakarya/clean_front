@@ -6,7 +6,7 @@ import { VSCodeExplorer } from "@/components/vscode/vscode-explorer"
 export default function Home() {
   return (
     <div className="h-screen w-full">
-      <VSCodeExplorer tenantName="algecomstore8" />
+      <VSCodeExplorer tenantName="algecomstore2" />
     </div>
   )
 }

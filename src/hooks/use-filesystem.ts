@@ -59,12 +59,13 @@ export function useFilesystem(tenantName: string) {
               "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQ3NzcxMjcwLCJpYXQiOjE3NDc0MTEyNzAsImp0aSI6ImI3YTc2MjU5MzdmNjQ3ZmZiYWVlZWVmMzBlYjAyNjg0IiwidXNlcl9pZCI6Mn0.GpzqfKHfYaT_rVbaNLE146qqlUgT--dwWbb7SnExgpE",
           },
         })
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch files: ${response.status}`)
-        }
+        
 
         const data = await response.json()
+        console.log("Fetched files:", data)
+        if (!response.ok) { 
+          throw new Error(`Failed to fetch files: ${response.status}`)
+        }
 
         // Transform flat file list into nested structure
         const transformedFiles = transformFileStructure(data.files)
