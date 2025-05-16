@@ -18,10 +18,10 @@ export function useFilesystem(tenantName: string) {
     const fetchTenant = async () => {
       try {
         setLoading(true)
-        const response = await fetch(`http://127.0.0.1:8000/api/v1/stores/97/`, {
+        const response = await fetch(`http://127.0.0.1:8000/api/v1/stores/8/`, {
           headers: {
             Authorization:
-              "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQ3MTY3MjA0LCJpYXQiOjE3NDY4MDcyMDQsImp0aSI6ImM3MDdjMTVhOTk2YTQwM2U5YjJlNmNhYzJjMGVhYzc3IiwidXNlcl9pZCI6N30.PLfysdCGyVd1-SzrOz5w5PWdH9yr_rYDHmM4WCR69FA",
+              "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQ3NzcxMjcwLCJpYXQiOjE3NDc0MTEyNzAsImp0aSI6ImI3YTc2MjU5MzdmNjQ3ZmZiYWVlZWVmMzBlYjAyNjg0IiwidXNlcl9pZCI6Mn0.GpzqfKHfYaT_rVbaNLE146qqlUgT--dwWbb7SnExgpE",
           },
         })
 
@@ -56,7 +56,7 @@ export function useFilesystem(tenantName: string) {
         const response = await fetch(`http://127.0.0.1:8000/api/v1/tenants/files/${tenantName}/`, {
           headers: {
             Authorization:
-              "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQ3MTY3MjA0LCJpYXQiOjE3NDY4MDcyMDQsImp0aSI6ImM3MDdjMTVhOTk2YTQwM2U5YjJlNmNhYzJjMGVhYzc3IiwidXNlcl9pZCI6N30.PLfysdCGyVd1-SzrOz5w5PWdH9yr_rYDHmM4WCR69FA",
+              "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQ3NzcxMjcwLCJpYXQiOjE3NDc0MTEyNzAsImp0aSI6ImI3YTc2MjU5MzdmNjQ3ZmZiYWVlZWVmMzBlYjAyNjg0IiwidXNlcl9pZCI6Mn0.GpzqfKHfYaT_rVbaNLE146qqlUgT--dwWbb7SnExgpE",
           },
         })
 
@@ -109,7 +109,7 @@ export function useFilesystem(tenantName: string) {
         const response = await fetch(`http://127.0.0.1:8000/api/v1/tenants/files/${tenantName}/?path=${path}`, {
           headers: {
             Authorization:
-              "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQ3MTY3MjA0LCJpYXQiOjE3NDY4MDcyMDQsImp0aSI6ImM3MDdjMTVhOTk2YTQwM2U5YjJlNmNhYzJjMGVhYzc3IiwidXNlcl9pZCI6N30.PLfysdCGyVd1-SzrOz5w5PWdH9yr_rYDHmM4WCR69FA",
+              "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQ3NzcxMjcwLCJpYXQiOjE3NDc0MTEyNzAsImp0aSI6ImI3YTc2MjU5MzdmNjQ3ZmZiYWVlZWVmMzBlYjAyNjg0IiwidXNlcl9pZCI6Mn0.GpzqfKHfYaT_rVbaNLE146qqlUgT--dwWbb7SnExgpE",
           },
         })
 
