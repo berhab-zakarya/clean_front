@@ -335,7 +335,8 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
               </div>
               <Button
                 type="submit"
-                loading={loading || storeLoading}
+                disabled={loading || storeLoading}
+                // loading={loading || storeLoading}
                 className="w-full rounded-full py-3 text-lg font-bold bg-gradient-to-tr from-[#6366f1] to-[#8b5cf6] text-white shadow-xl hover:scale-105 hover:from-[#4f46e5] hover:to-[#7c3aed] transition-all duration-200"
               >
                 {loading || storeLoading ? "Creating..." : "Create Store"}
