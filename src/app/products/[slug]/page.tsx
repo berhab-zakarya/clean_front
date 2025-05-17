@@ -3,13 +3,15 @@ import { notFound } from 'next/navigation'
 import Image from "next/image"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { MinusIcon, PlusIcon } from "lucide-react"
 import ProductGrid from "@/components/product/product-grid"
 import Newsletter from "@/components/product/newsletter"
 import ProductHeader from "@/components/product/header"
-import { products } from "@/lib/products"
+import { products } from "@/lib/products/products"
 import { useState } from "react"
 import Footer from '@/components/product/footer'
+import { ProductConstants } from './constants'
+import { ProductIcons } from './icons'
+import { ProductImages } from './images'
 
 export default function ProductPage({ params }: { params: { slug: string } }) {
   const product = products.find(p => p.slug === params.slug)
@@ -18,7 +20,13 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
     return notFound()
   }
 
-  const [quantity, setQuantity] = useState(1)
+  // Get product images from images.ts
+  const productImages = ProductImages.products[product.slug as keyof typeof ProductImages.products] || {
+    main: ProductImages.placeholder,
+    gallery: []
+  }
+
+  const [quantity, setQuantity] = useState(ProductConstants.defaultQuantity)
   const [activeColorIndex, setActiveColorIndex] = useState(
     product.colors.findIndex(color => color.active)
   )
@@ -26,19 +34,11 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
     product.sizes.findIndex(size => size.active)
   )
 
-  const decreaseQuantity = () => {
-    if (quantity > 1) {
-      setQuantity(quantity - 1)
-    }
-  }
-
-  const increaseQuantity = () => {
-    setQuantity(quantity + 1)
-  }
+  const decreaseQuantity = () => quantity > 1 && setQuantity(quantity - 1)
+  const increaseQuantity = () => setQuantity(quantity + 1)
 
   return (
     <div className="bg-white">
-      {/* Added Product Header Here */}
       <ProductHeader />
       
       <div className="max-w-7xl mx-auto px-4 py-10">
@@ -47,13 +47,31 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
           <div className="w-full lg:w-1/2 lg:pr-10">
             <div className="rounded-xl overflow-hidden mb-5">
               <Image
-                src={product.image}
+                src={productImages.main}
                 alt={product.name}
                 width={600}
                 height={600}
                 className="w-full h-auto object-cover"
+                priority
               />
             </div>
+            
+            {/* Image Gallery */}
+            {productImages.gallery.length > 0 && (
+              <div className="grid grid-cols-3 gap-4">
+                {productImages.gallery.map((image, index) => (
+                  <div key={index} className="border rounded-lg overflow-hidden">
+                    <Image
+                      src={image}
+                      alt={`${product.name} view ${index + 1}`}
+                      width={200}
+                      height={200}
+                      className="w-full h-auto object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Product Info */}
@@ -62,9 +80,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
               <h1 className="text-2xl font-bold">{product.name}</h1>
               <div className="stars text-xl">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <span key={i} className={i < Math.floor(product.rating) ? 'text-yellow-400' : 'text-gray-300'}>
-                    {i < Math.floor(product.rating) ? '★' : '☆'}
-                  </span>
+                  ProductIcons.star(i < Math.floor(product.rating))
                 ))}
                 <span className="ml-1 text-base">{product.rating}</span>
               </div>
@@ -124,7 +140,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
                 className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center"
                 onClick={decreaseQuantity}
               >
-                <MinusIcon className="w-4 h-4" />
+                {ProductIcons.minus}
               </button>
               <input 
                 type="text" 
@@ -136,13 +152,13 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
                 className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center"
                 onClick={increaseQuantity}
               >
-                <PlusIcon className="w-4 h-4" />
+                {ProductIcons.plus}
               </button>
             </div>
 
             {/* Add to Cart Button */}
             <Button className="w-full py-6 rounded-full bg-black hover:bg-gray-800 text-white mb-8">
-              ADD TO CART
+              {ProductConstants.addToCartText}
             </Button>
 
             {/* Product Tabs */}
@@ -152,24 +168,24 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
                   value="details"
                   className="data-[state=active]:border-b-2 data-[state=active]:border-black rounded-none"
                 >
-                  Product Details
+                  {ProductConstants.productDetailsTab}
                 </TabsTrigger>
                 <TabsTrigger
                   value="reviews"
                   className="data-[state=active]:border-b-2 data-[state=active]:border-black rounded-none"
                 >
-                  Ratings & Reviews
+                  {ProductConstants.ratingsReviewsTab}
                 </TabsTrigger>
                 <TabsTrigger
                   value="faqs"
                   className="data-[state=active]:border-b-2 data-[state=active]:border-black rounded-none"
                 >
-                  FAQs
+                  {ProductConstants.faqsTab}
                 </TabsTrigger>
               </TabsList>
 
               <TabsContent value="details">
-                <h3 className="text-lg font-medium mb-4">Product Details</h3>
+                <h3 className="text-lg font-medium mb-4">{ProductConstants.productDetailsTab}</h3>
                 <ul className="space-y-2">
                   {product.details.map((detail, index) => (
                     <li key={index}>{detail}</li>
@@ -184,17 +200,13 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
                       All Reviews <span className="text-gray-500">({product.reviews})</span>
                     </h3>
                     <div className="flex gap-2">
+                      {ProductConstants.reviewFilterOptions.map(option => (
+                        <Button key={option} variant="outline" size="sm" className="rounded-full">
+                          {option}
+                        </Button>
+                      ))}
                       <Button variant="outline" size="sm" className="rounded-full">
-                        All
-                      </Button>
-                      <Button variant="outline" size="sm" className="rounded-full">
-                        Latest
-                      </Button>
-                      <Button variant="outline" size="sm" className="rounded-full">
-                        5 ★
-                      </Button>
-                      <Button variant="outline" size="sm" className="rounded-full">
-                        Write a Review
+                        {ProductConstants.writeReviewText}
                       </Button>
                     </div>
                   </div>
@@ -216,7 +228,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
                   ))}
 
                   <Button variant="outline" className="mx-auto block rounded-full border-black">
-                    Load More Reviews
+                    {ProductConstants.loadMoreReviewsText}
                   </Button>
                 </div>
               </TabsContent>
@@ -239,11 +251,12 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
 
       {/* Related Products */}
       <section className="py-16">
-        <h2 className="text-3xl font-bold text-center mb-10">YOU MAY ALSO LIKE</h2>
+        <h2 className="text-3xl font-bold text-center mb-10">
+          {ProductConstants.relatedProductsTitle}
+        </h2>
         <ProductGrid />
       </section>
 
-      {/* Newsletter */}
       <Newsletter />
       <Footer />
     </div>

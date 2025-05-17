@@ -1,3 +1,4 @@
+// types/product.ts
 export interface ProductColor {
   name: string;
   value: string;
@@ -30,7 +31,6 @@ export interface Product {
   price: string;
   originalPrice: string;
   discount?: string;
-  image: string;
   rating: number;
   reviews: number;
   screenSize: string;
