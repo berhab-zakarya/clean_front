@@ -98,39 +98,66 @@ interface TerminalProps {
 
 export const Terminal = ({ children, className }: TerminalProps) => {
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
       className={cn(
-        "z-0 h-full max-h-full w-full max-w-full rounded-xl border border-white/10 bg-[#0f172a] shadow-2xl",
+        "z-0 h-full max-h-full w-full max-w-full rounded-xl border border-white/5 bg-[#0a0f1c] shadow-2xl backdrop-blur-sm",
         className,
       )}
     >
       {/* Terminal Header */}
-      <div className="flex flex-col gap-y-2 border-b border-white/10 bg-[#1e293b] p-4 rounded-t-xl">
+      <motion.div 
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.1, duration: 0.3 }}
+        className="flex flex-col gap-y-2 border-b border-white/5 bg-[#111827] p-4 rounded-t-xl"
+      >
         <div className="flex flex-row gap-x-2">
-          <div className="h-3 w-3 rounded-full bg-[#ef4444] shadow-lg shadow-red-500/20"></div>
-          <div className="h-3 w-3 rounded-full bg-[#f59e0b] shadow-lg shadow-yellow-500/20"></div>
-          <div className="h-3 w-3 rounded-full bg-[#10b981] shadow-lg shadow-green-500/20"></div>
+          <motion.div 
+            whileHover={{ scale: 1.1 }}
+            className="h-3 w-3 rounded-full bg-[#ef4444] shadow-lg shadow-red-500/20 cursor-pointer"
+          />
+          <motion.div 
+            whileHover={{ scale: 1.1 }}
+            className="h-3 w-3 rounded-full bg-[#f59e0b] shadow-lg shadow-yellow-500/20 cursor-pointer"
+          />
+          <motion.div 
+            whileHover={{ scale: 1.1 }}
+            className="h-3 w-3 rounded-full bg-[#10b981] shadow-lg shadow-green-500/20 cursor-pointer"
+          />
         </div>
-        <div className="mt-2 text-xs text-white/60 font-mono">
+        <div className="mt-2 text-xs text-white/50 font-mono">
           Terminal - Ready
         </div>
-      </div>
+      </motion.div>
 
       {/* Terminal Content */}
-      <div className="p-4 bg-gradient-to-b from-[#0f172a] to-[#1e293b]">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2, duration: 0.3 }}
+        className="p-4 bg-gradient-to-b from-[#0a0f1c] to-[#111827]"
+      >
         <pre className="overflow-auto">
-          <code className="grid gap-y-2 font-mono text-sm">
+          <code className="grid gap-y-2 font-mono text-sm text-white/80">
             {children}
           </code>
         </pre>
-      </div>
+      </motion.div>
 
       {/* Terminal Footer */}
-      <div className="border-t border-white/10 bg-[#1e293b] p-2 rounded-b-xl">
-        <div className="text-xs text-white/40 font-mono px-2">
+      <motion.div 
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.3, duration: 0.3 }}
+        className="border-t border-white/5 bg-[#111827] p-2 rounded-b-xl"
+      >
+        <div className="text-xs text-white/30 font-mono px-2">
           Press Ctrl+C to exit
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };

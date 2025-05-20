@@ -3,7 +3,8 @@
 import { useState, useCallback } from "react"
 import { File, Folder, Tree } from "@/components/magicui/file-tree"
 import { Loader2 } from "lucide-react"
-import { FileSystemNode } from "@/lib/types"
+import { FileSystemNode } from "@/lib/types/files"
+import { TreeViewElement } from "@/components/magicui/file-tree"
 
 interface VSCodeFileExplorerProps {
   files: FileSystemNode[]
@@ -31,7 +32,7 @@ export function VSCodeFileExplorer({ files, loading, error, activeFileId, onFile
   )
 
   // Transform our file structure to match the Tree component's expected format
-  const transformToTreeElements = useCallback((nodes: FileSystemNode[]): any[] => {
+  const transformToTreeElements = useCallback((nodes: FileSystemNode[]): TreeViewElement[] => {
     return nodes.map((node) => ({
       id: node.id,
       name: node.name,
@@ -50,9 +51,6 @@ export function VSCodeFileExplorer({ files, loading, error, activeFileId, onFile
               key={node.id} 
               value={node.id} 
               element={node.name}
-              // Remove defaultOpen prop - it doesn't exist on the Folder component
-              // Instead use expandedItems prop which should be supported
-              expandedItems={expandedItems.includes(node.id) ? [node.id] : []}
             >
               {node.children && renderFileTree(node.children)}
             </Folder>

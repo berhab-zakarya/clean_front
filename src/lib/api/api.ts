@@ -926,4 +926,50 @@ export const attributesAPI = {
   }
 };
 
+// --- Files API ---
+interface FileContentResponse {
+  path: string;
+  content: string;
+}
+
+export const filesAPI = {
+  getStoreFiles: async (subdomain: string): Promise<{ files: string[] }> => {
+    try {
+      const response = await api.get<{ files: string[] }>(`/tenants/files/${subdomain}/`);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const apiError = error.response?.data as ApiError;
+        throw new Error(
+          apiError?.detail || 
+          apiError?.message || 
+          'Failed to fetch store files'
+        );
+      }
+      throw new Error('Network error while fetching store files');
+    }
+  },
+
+  getFileContent: async (subdomain: string, filePath: string): Promise<FileContentResponse> => {
+    try {
+      const response = await api.get<FileContentResponse>(`/tenants/files/${subdomain}/`, {
+        params: {
+          path: filePath
+        }
+      });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const apiError = error.response?.data as ApiError;
+        throw new Error(
+          apiError?.detail || 
+          apiError?.message || 
+          'Failed to fetch file content'
+        );
+      }
+      throw new Error('Network error while fetching file content');
+    }
+  }
+};
+
 export default api;

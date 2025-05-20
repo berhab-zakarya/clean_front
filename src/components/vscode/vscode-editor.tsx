@@ -394,88 +394,102 @@ export function VSCodeEditor({ activeFilePath, fileContent, onContentChange }: V
                   fileExtension === 'css' ? 'CSS' : 
                   fileExtension === 'json' ? 'JSON' : 'Plain Text';
 
-  return (
-    <div 
-      ref={containerRef}
-      className="flex flex-col h-full bg-gray-950 text-white border border-gray-800 rounded overflow-hidden"
-      onClick={handleContainerClick}
-    >
-      {/* Tab bar */}
-      <div className="flex bg-gray-900 border-b border-gray-800">
-        {activeFilePath && (
-          <div className="flex items-center px-4 py-2 bg-gray-800 border-r border-gray-700">
-            <span className="text-sm">{activeFilePath.split("/").pop()}</span>
-          </div>
-        )}
-      </div>
-      
-      {/* Editor */}
-      <div 
-        ref={editorContainerRef}
-        className="flex-1 flex flex-col overflow-hidden relative"
-      >
-        {activeFilePath ? (
-          <div className="flex h-full relative overflow-hidden">
-            {/* Line numbers */}
-            <div className="py-2 px-2 text-right text-gray-500 bg-gray-900 select-none min-w-10 overflow-hidden">
-              {lineNumbers.map((num) => (
-                <div key={num} className="leading-6 text-sm">
-                  {num}
-                </div>
-              ))}
-            </div>
-            
-            {/* Code editor with syntax highlighting */}
-            <div className="relative flex-grow overflow-auto">
-              {/* Highlighted code layer (non-interactive) */}
-              <div 
-                ref={editorRef}
-                className="absolute inset-0 py-2 px-4 overflow-auto pointer-events-none scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900"
-                style={{ opacity: isFocused ? 0.3 : 1 }}
-              >
-                <HighlightedCode code={fileContent || ""} />
-              </div>
-              
-              {/* Textarea for editing */}
-              <textarea
-                ref={textareaRef}
-                value={fileContent || ""}
-                onChange={handleContentChange}
-                onKeyDown={handleKeyDown}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                onSelect={handleSelect}
-                onClick={handleSelect}
-                className={`absolute inset-0 py-2 px-4 outline-none overflow-auto resize-none font-mono text-sm leading-6
-                  w-full h-full whitespace-pre bg-opacity-50 scrollbar scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900 ${
-                  isFocused 
-                    ? "text-white bg-gray-900" 
-                    : "bg-transparent text-transparent caret-white"
-                }`}
-                spellCheck={false}
-                aria-label="Code editor"
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center justify-center h-full text-gray-500">
-            <p>Select a file to edit</p>
-          </div>
-        )}
-      </div>
-      
-      {/* Status bar */}
-      <div className="flex justify-between items-center text-xs bg-gray-800 border-t border-gray-700 px-3 py-1">
-        <div>
-          Ln {cursorPosition.line + 1}, Col {cursorPosition.column + 1}
-        </div>
-        <div className="flex items-center space-x-4">
-          <span>UTF-8</span>
-          <span>{language}</span>
-          {!isFocused && <span className="text-gray-500">Read-only</span>}
-          {isFocused && <span className="text-green-500">Editing</span>}
-        </div>
-      </div>
-    </div>
-  );
+                  return (
+                    <div 
+                      ref={containerRef}
+                      className="flex flex-col h-full bg-gray-950 text-white border border-gray-800 rounded-md overflow-hidden shadow-lg"
+                      onClick={handleContainerClick}
+                    >
+                      {/* Tab bar */}
+                    
+                      
+                      {/* Editor */}
+                      <div 
+                        ref={editorContainerRef}
+                        className="flex-1 flex flex-col overflow-hidden relative"
+                      >
+                        {activeFilePath ? (
+                          <div className="flex h-full relative overflow-hidden">
+                            {/* Line numbers */}
+                            <div className="py-2 px-2 text-right text-gray-500 bg-gray-900 select-none min-w-10 overflow-hidden border-r border-gray-800">
+                              {lineNumbers.map((num) => (
+                                <div key={num} className="leading-6 text-sm">
+                                  {num}
+                                </div>
+                              ))}
+                            </div>
+                            
+                            {/* Code editor with syntax highlighting */}
+                            <div className="relative flex-grow overflow-auto">
+                              {/* Highlighted code layer (non-interactive) */}
+                              <div 
+                                ref={editorRef}
+                                className="absolute inset-0 py-2 px-4 overflow-auto pointer-events-none scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-900"
+                                style={{ opacity: isFocused ? 0.3 : 1 }}
+                              >
+                                <HighlightedCode code={fileContent || ""} />
+                              </div>
+                              
+                              {/* Textarea for editing */}
+                              <textarea
+                                ref={textareaRef}
+                                value={fileContent || ""}
+                                onChange={handleContentChange}
+                                onKeyDown={handleKeyDown}
+                                onFocus={() => setIsFocused(true)}
+                                onBlur={() => setIsFocused(false)}
+                                onSelect={handleSelect}
+                                onClick={handleSelect}
+                                className={`absolute inset-0 py-2 px-4 outline-none overflow-auto resize-none font-mono text-sm leading-6
+                                  w-full h-full whitespace-pre bg-opacity-50 scrollbar scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-900 ${
+                                  isFocused 
+                                    ? "text-white bg-gray-900 bg-opacity-70" 
+                                    : "bg-transparent text-transparent caret-white"
+                                }`}
+                                spellCheck={false}
+                                aria-label="Code editor"
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center h-full text-gray-500 space-y-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <p className="text-sm font-medium">Select a file to edit</p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Status bar */}
+                      <div className="flex justify-between items-center text-xs bg-gray-800 border-t border-gray-700 px-3 py-1.5">
+                        <div className="flex items-center space-x-2">
+                          <div className="flex items-center">
+                            <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 bg-gray-500"></span>
+                            <span>Ln {cursorPosition.line + 1}, Col {cursorPosition.column + 1}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                          <span className="px-1.5 py-0.5 rounded bg-gray-700 text-gray-300">UTF-8</span>
+                          <span className="px-1.5 py-0.5 rounded bg-gray-700 text-gray-300">{language}</span>
+                          {!isFocused && 
+                            <span className="flex items-center text-gray-400">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                              </svg>
+                              Read-only
+                            </span>
+                          }
+                          {isFocused && 
+                            <span className="flex items-center text-green-400">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                              </svg>
+                              Editing
+                            </span>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  );
 }

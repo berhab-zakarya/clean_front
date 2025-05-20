@@ -169,15 +169,23 @@ export const Pricing = () => {
                 </div>
                 
                 <div className="flex-grow space-y-3 mb-6 border-t pt-6">
-                  {Object.entries(plan.features).map(([key, value], idx) => (
-  <div key={idx} className="flex items-center">
-    <span className="text-orange-500 mr-2 text-lg">+</span>
-    <span className="text-[#2D2E83] capitalize">
-      {key} {value!==null && `: ${value}`}
-    </span>
-  </div>
-))}
-
+                  {Array.isArray(plan.features) ? (
+                    plan.features.map((feature, idx) => (
+                      <div key={idx} className="flex items-center">
+                        <span className="text-orange-500 mr-2 text-lg">+</span>
+                        <span className="text-[#2D2E83]">
+                          {typeof feature === 'string' ? feature : JSON.stringify(feature)}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="flex items-center">
+                      <span className="text-orange-500 mr-2 text-lg">+</span>
+                      <span className="text-[#2D2E83]">
+                        {String(plan.features)}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 
                 <Button className="w-full">Subscribe</Button>
