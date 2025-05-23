@@ -3,7 +3,7 @@ import * as React from "react";
 import { Input as UIInput } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   error?: string;

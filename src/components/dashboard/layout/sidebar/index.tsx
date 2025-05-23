@@ -63,14 +63,12 @@ export default function Sidebar() {
             href="#" 
             className="transform transition-all duration-300 hover:scale-105 hover:opacity-80"
           >
-            <div className="relative transition-transform duration-300 hover:rotate-2">
-              <Logo />
-            </div>
+            <Logo />
           </a>
         </div>
 
         <div className="space-y-8">
-          <MainMenu />logo
+          <MainMenu />
           <PreferencesMenu isDarkMode={isDarkMode} toggleDarkMode={() => setIsDarkMode(!isDarkMode)} />
         </div>
       </div>
