@@ -1026,6 +1026,7 @@ export const filesAPI = {
       });
       return response.data;
     } catch (error) {
+      console.error('UpdateFileContent Error:', error);
       if (axios.isAxiosError(error)) {
         const apiError = error.response?.data as ApiError;
         throw new Error(

@@ -164,74 +164,106 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
       }
 
       ws.onmessage = (event) => {
-        let msg = event.data
-        let status = ""
-        let url = ""
-        
-        try {
-          const data = JSON.parse(event.data)
-          msg = data.message || event.data
-          status = data.status
-          url = data.url || data.store_url
-        } catch {
-          // Handle plain text messages
-        }
+  let msg = event.data
+  let status = ""
+  let url = ""
+  
+  try {
+    const data = JSON.parse(event.data)
+    msg = data.message || event.data
+    status = data.status
+    url = data.url || data.store_url
+  } catch {
+    // Handle plain text messages
+  }
 
-        // Check for successful deployment
-        if (msg.includes("Next.js server is running") || status === "success" || msg.includes("deployed successfully")) {
-          clearTimeout(deploymentTimeout)
-          setDeploymentComplete(true)
-          
-          setTerminalLines(prev => [...prev, {
-            type: "span" as const,
-            text: "🎉 Store deployed successfully!",
-            className: "text-emerald-400 font-bold text-lg",
-          }])
-          
-          if (url) {
-            // Validate and clean URL
-            let cleanUrl = url.trim()
-            if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
-              cleanUrl = `https://${cleanUrl}`
-            }
-            
-            setStoreUrl(cleanUrl)
-            setTerminalLines(prev => [...prev, {
-              type: "span" as const,
-              text: `🌐 Store URL: ${cleanUrl}`,
-              className: "text-emerald-400 font-medium",
-            }])
-          }
-          
-          // Keep the deployment view visible for at least 5 seconds before redirecting
-          setTimeout(() => {
-            ws.close()
-            router.push("/dashboard/StoreSetupGuide")
-            onComplete()
-          }, 5000)
-          
-        } else if (status === "failed" || msg.toLowerCase().includes("error") || msg.toLowerCase().includes("failed")) {
-          clearTimeout(deploymentTimeout)
-          setTerminalLines(prev => [...prev, {
-            type: "span" as const,
-            text: `❌ Deployment failed: ${msg}`,
-            className: "text-red-400 font-semibold",
-          }])
-          ws.close()
-          setIsDeploying(false)
-          toast.error("Deployment failed. Please try again.")
-        } else if (msg.trim()) {
-          setTerminalLines(prev => [...prev, {
-            type: "span" as const,
-            text: `📋 ${msg}`,
-            className: "text-cyan-300 text-sm",
-          }])
-        }
+  // Check for successful deployment - updated conditions
+  if (msg.includes("Pure store deployment successful") || 
+      msg.includes("deployment successful") ||
+      msg.includes("Store deployed successfully") ||
+      status === "success" || 
+      status === "deployed" ||
+      msg.includes("deployed successfully")) {
 
-        // Auto-scroll terminal
-        setTimeout(handleScroll, 100)
+    clearTimeout(deploymentTimeout)
+    setDeploymentComplete(true)
+    
+    setTerminalLines(prev => [...prev, {
+      type: "span" as const,
+      text: "🎉 Store deployed successfully!",
+      className: "text-emerald-400 font-bold text-lg",
+    }])
+    
+    // Generate store URL if not provided
+    if (!url && formData.subdomain) {
+      url = `https://${formData.subdomain}.algecom.com`
+    }
+    
+    if (url) {
+      // Validate and clean URL
+      let cleanUrl = url.trim()
+      if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+        cleanUrl = `https://${cleanUrl}`
       }
+      
+      setStoreUrl(cleanUrl)
+      setTerminalLines(prev => [...prev, {
+        type: "span" as const,
+        text: `🌐 Store URL: ${cleanUrl}`,
+        className: "text-emerald-400 font-medium",
+      }])
+    }
+    
+    // Keep the deployment view visible for at least 5 seconds before redirecting
+    setTimeout(() => {
+      ws.close()
+      router.push("/dashboard/StoreSetupGuide")
+      onComplete()
+    }, 5000)
+    
+  } else if (status === "failed" || 
+             msg.toLowerCase().includes("deployment failed") ||
+             msg.toLowerCase().includes("error") || 
+             msg.toLowerCase().includes("failed")) {
+    clearTimeout(deploymentTimeout)
+    setTerminalLines(prev => [...prev, {
+      type: "span" as const,
+      text: `❌ Deployment failed: ${msg}`,
+      className: "text-red-400 font-semibold",
+    }])
+    ws.close()
+    setIsDeploying(false)
+    toast.error("Deployment failed. Please try again.")
+  } else if (msg.trim()) {
+    // Show deployment progress messages
+    let displayMsg = msg
+    let className = "text-cyan-300 text-sm"
+    
+    // Customize messages based on content
+    if (msg.includes("Creating store directory")) {
+      displayMsg = "📁 Setting up store structure..."
+      className = "text-blue-400 text-sm"
+    } else if (msg.includes("Looking for template")) {
+      displayMsg = "🔍 Loading store template..."
+      className = "text-purple-400 text-sm"
+    } else if (msg.includes("Copying static file") || msg.includes("Created processed file")) {
+      displayMsg = "📋 Installing store assets..."
+      className = "text-indigo-400 text-sm"
+    } else if (msg.includes("deployment_status")) {
+      displayMsg = "⚙️ Finalizing deployment..."
+      className = "text-yellow-400 text-sm"
+    }
+    
+    setTerminalLines(prev => [...prev, {
+      type: "span" as const,
+      text: displayMsg,
+      className: className,
+    }])
+  }
 
+  // Auto-scroll terminal
+  setTimeout(handleScroll, 100)
+}
       ws.onerror = (error) => {
         clearTimeout(connectionTimeout)
         clearTimeout(deploymentTimeout)
@@ -320,6 +352,7 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
         ])
         
         if (response.id) {
+          setStoreUrl(response.store_url);
           // Add a small delay before starting WebSocket connection
           setTimeout(() => {
             handleWebSocket(response.id)
