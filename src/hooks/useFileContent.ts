@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { filesAPI } from '../api/api';
+import { filesAPI } from '../lib/api/api';
 
 interface UseFileContentResult {
   content: string | null;

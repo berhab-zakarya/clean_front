@@ -367,14 +367,14 @@ export default function ProductAddForm() {
     <div className="bg-gray-50 min-h-screen p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-[28px] md:text-[38px] font-[600] leading-[40px] md:leading-[60px] text-gray-800  mt-[40px] md:mt-[111px]">
+          <h1 className="text-[28px] md:text-[38px] font-[600] leading-[40px] md:leading-[60px] text-gray-800">
             Add Product
           </h1>
           <div className="flex gap-3">
             <Button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="w-[142px] h-[42px] bg-[#1E3A8A] rounded-full mt-[40px] md:mt-[111px] ml-[20px] "
+              className="w-[142px] h-[42px] bg-[#1E3A8A] rounded-full  ml-[20px] "
               variant="primary"
             >
               {isSubmitting ? (
