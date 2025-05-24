@@ -12,7 +12,7 @@ import { Terminal, TypingAnimation, AnimatedSpan } from "@/components/magicui/te
 import { Store, Sparkles, Rocket, Globe } from "lucide-react"
 
 // Lazy load the MergedComponent
-const MergedComponent = dynamic(() => import("@/components/dashboard/StoreSetupGuide/MergedComponent"), {
+const MergedComponent = dynamic(() => import("@/components/dashboard/StoreSetupGuide/DeploymentBackground"), {
   loading: () => <div className="animate-pulse bg-gray-800 rounded-lg h-96"></div>
 })
 

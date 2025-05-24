@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Upload, X, Moon, Sun, CheckCircle2, AlertCircle } from "lucide-react"
 import { toast } from "react-toastify";
 import { Alert } from "@/components/common/feedback/Alert";
-import { storesAPI } from "@/lib/api/stores/api";
+
 
 export default function PersonalAccount() {
   const { userData, loading, error: userError, isUpdating, updateProfile } = useUser();

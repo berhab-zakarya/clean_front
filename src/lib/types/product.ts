@@ -9,21 +9,36 @@ export interface CreateProductRequest {
   name: string;
   slug: string;
   description: string;
-  price: string;
-  promotional_price: string;
+  price: number;
+  promotional_price: number;
   currency: string;
   stock_quantity: number;
   sku: string;
-  category: number;
   is_featured: boolean;
+  category: number;
   status: 'published' | 'draft' | 'archived';
   has_variants: boolean;
 }
 
-export interface Product extends CreateProductRequest {
+export interface Product {
   id: number;
-  created_at: string;
-  updated_at: string;
+  name: string;
+  slug: string;
+  description: string;
+  price: string;
+  promotional_price: string | null;
+  currency: string;
+  stock_quantity: number;
+  sku: string;
+  is_featured: boolean;
+  category: number;
+  status: 'published' | 'draft' | 'archived';
+  has_variants: boolean;
+  is_sale: boolean;
+  current_price: string;
+  average_rating: string;
+  category_name: string;
+  primary_image: string | null;
 }
 
 export interface ProductApiError {
@@ -31,8 +46,6 @@ export interface ProductApiError {
   detail?: string;
   errors?: Record<string, string[]>;
 }
-
-
 
 export interface ProductError {
   message: string;

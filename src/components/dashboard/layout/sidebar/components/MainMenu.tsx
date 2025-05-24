@@ -1,10 +1,12 @@
 "use client"
-import { usePathname } from 'next/navigation'
+import { usePathname, useParams } from 'next/navigation'
 import { MenuItem } from "./MenuItem"
 import { mainMenuItems } from "../config/menu-items"
 
 export const MainMenu = () => {
   const pathname = usePathname()
+  const params = useParams()
+  const storeId = params.storeId as string
 
   return (
     <div className="transform transition-all duration-300 hover:translate-x-1">
@@ -13,14 +15,15 @@ export const MainMenu = () => {
       </h3>
       <nav className="space-y-4">
         {mainMenuItems.map((item, index) => {
-          const isActive = pathname === item.href
+          const href = typeof item.href === 'function' ? item.href(storeId) : item.href
+          const isActive = pathname === href
           
           return (
             <div 
               key={index} 
               className="transform transition-all duration-300 hover:translate-x-2 hover:bg-gray-50 rounded-lg"
             >
-              <MenuItem {...item} active={isActive} />
+              <MenuItem {...item} href={href} active={isActive} />
             </div>
           )
         })}

@@ -51,13 +51,14 @@ export function VSCodeFileExplorer({ files, loading, error, activeFileId, onFile
               key={node.id} 
               value={node.id} 
               element={node.name}
+              className="text-white text-[18px]"
             >
               {node.children && renderFileTree(node.children)}
             </Folder>
           )
         } else {
           return (
-            <File onClick={() => handleItemClick(node.id, node)} key={node.id} value={node.id} className={activeFileId === node.id ? "bg-gray-700" : ""}>
+            <File onClick={() => handleItemClick(node.id, node)} key={node.id} value={node.id} className={activeFileId === node.id ? "bg-[#1E3A8A] p-1 font-[400] text-white text-[16px]" : "text-white text-[16px]"}>
               <p>{node.name}</p>
             </File>
           )
@@ -96,7 +97,7 @@ export function VSCodeFileExplorer({ files, loading, error, activeFileId, onFile
   )
 
   return (
-    <div className="w-64 bg-gray-900 border-r border-gray-800 overflow-y-auto">
+    <div className="w-64 bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 border-r border-gray-700/50 overflow-y-auto">
       <div className="p-2 font-medium text-sm uppercase tracking-wider text-gray-500">Explorer</div>
 
       {loading ? (

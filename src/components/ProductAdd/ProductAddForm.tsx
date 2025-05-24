@@ -202,33 +202,49 @@ export default function ProductAddForm() {
         category: parseInt(productData.category) || 1,
         is_featured: false,
         status: productData.status,
-        has_variants: variants.length > 0
+        has_variants: variants.length > 0,
+        tenant_id: storeId
       };
 
       // Create the product
       const result = await createProduct(finalProductData);
       
-      if (result) {
-        // If we have media files, add them as product images
-        if (mediaFiles.length > 0) {
-          const productImages = mediaFiles.map((file, index) => ({
-            image_url: file.preview,
-            alt_text: file.name,
-            is_primary: index === 0, // First image is primary
-            sort_order: index + 1
-          }));
-
-          await addProductImages(result.id, productImages);
-        }
-
-        // If the product has variants, add them
-        if (variants.length > 0) {
-          await addProductVariants(result.id, variants);
-        }
-
-        toast.success("Product created successfully!");
-        router.push('/dashboard/products');
+      if (!result) {
+        throw new Error('Failed to create product: No response received');
       }
+
+      // Get the product ID from the response
+      const productId = result.id;
+      if (!productId) {
+        throw new Error('Failed to create product: No product ID in response');
+      }
+
+      // If we have media files, add them as product images
+      if (mediaFiles.length > 0) {
+        const productImages = mediaFiles.map((file, index) => ({
+          image_url: file.preview,
+          alt_text: file.name,
+          is_primary: index === 0, // First image is primary
+          sort_order: index + 1
+        }));
+
+        await addProductImages(productId, productImages);
+      }
+
+      // If the product has variants, add them
+      if (variants.length > 0) {
+        try {
+          console.log('Adding variants:', variants);
+          await addProductVariants(productId, variants);
+        } catch (error) {
+          console.error('Failed to add variants:', error);
+          // Continue with the flow even if variant addition fails
+          toast.error("Product created but failed to add variants. Please try adding variants manually.");
+        }
+      }
+
+      toast.success("Product created successfully!");
+      router.push('/dashboard/products');
     } catch (error) {
       console.error("Product creation error:", error);
       toast.error(error instanceof Error ? error.message : "Failed to add product");
@@ -280,19 +296,54 @@ export default function ProductAddForm() {
 
   const handleAddOption = (option: { id: string; name: string; values: string[] }) => {
     // Convert option to ProductVariant format
-    const newVariants = option.values.map(value => ({
-      sku: `${productData.sku}-${value}`,
-      price_adjustment: "0.00",
-      stock_quantity: productData.inventory_quantity,
-      attributes: [
-        {
-          attribute_id: parseInt(option.id),
-          value_id: parseInt(value)
-        }
-      ]
-    }));
+    const newVariants = option.values.map(value => {
+      // Use predefined attribute IDs based on option name
+      const attributeId = option.name.toLowerCase() === 'size' ? 1 : 2;
+      const valueId = option.name.toLowerCase() === 'size' ? 
+        (value.toLowerCase() === 's' ? 1 : 
+         value.toLowerCase() === 'm' ? 2 : 
+         value.toLowerCase() === 'l' ? 3 : 4) :
+        (value.toLowerCase() === 'white' ? 4 : 
+         value.toLowerCase() === 'black' ? 5 : 
+         value.toLowerCase() === 'red' ? 6 : 7);
 
-    setVariants(prev => [...prev, ...newVariants]);
+      // Format SKU based on the option type
+      const skuPrefix = option.name.toLowerCase() === 'size' ? 
+        `${productData.sku}-${value.toUpperCase()}` :
+        `${productData.sku}-${value.toUpperCase()}`;
+
+      return {
+        sku: skuPrefix,
+        price_adjustment: "0.00",
+        stock_quantity: productData.inventory_quantity || 0,
+        attributes: [
+          {
+            attribute_id: attributeId,
+            value_id: valueId
+          }
+        ]
+      };
+    });
+
+    // Validate variants before adding
+    const validVariants = newVariants.filter(variant => {
+      return (
+        variant.sku &&
+        variant.stock_quantity >= 0 &&
+        variant.attributes.length > 0 &&
+        variant.attributes.every(attr => 
+          typeof attr.attribute_id === 'number' && 
+          typeof attr.value_id === 'number'
+        )
+      );
+    });
+
+    if (validVariants.length === 0) {
+      toast.error("Failed to create valid variants");
+      return;
+    }
+
+    setVariants(prev => [...prev, ...validVariants]);
   };
 
   const handleRemoveOption = (optionId: string) => {

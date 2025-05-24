@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface Option {
   id: string;
@@ -22,17 +22,37 @@ const VariantsComponent = ({
   const [newOptionName, setNewOptionName] = useState('');
   const [newOptionValues, setNewOptionValues] = useState('');
 
+  // Predefined options for size and color
+  const predefinedOptions = {
+    size: ['S', 'M', 'L', 'XL'],
+    color: ['White', 'Black', 'Red']
+  };
+
   const handleAddOption = () => {
     if (newOptionName.trim() === '') return;
     
-    const values = newOptionValues.split(',')
-      .map(value => value.trim())
-      .filter(value => value !== '');
+    const optionName = newOptionName.trim().toLowerCase();
+    let values: string[] = [];
+    
+    // Use predefined values if it's a size or color option
+    if (optionName === 'size') {
+      values = predefinedOptions.size;
+    } else if (optionName === 'color') {
+      values = predefinedOptions.color;
+    } else {
+      values = newOptionValues.split(',')
+        .map(value => value.trim())
+        .filter(value => value !== '');
+    }
+    
+    if (values.length === 0) {
+      values = ['Default'];
+    }
     
     const newOption: Option = {
-      id: `option-${Date.now()}`,
-      name: newOptionName.trim(),
-      values: values.length > 0 ? values : ['Default'],
+      id: `option-${Math.abs(Date.now())}`,
+      name: optionName,
+      values: values,
     };
     
     const updatedOptions = [...options, newOption];
@@ -127,31 +147,35 @@ const VariantsComponent = ({
                 <label htmlFor="optionName" className="block text-sm font-medium text-gray-600 mb-2">
                   Option Name
                 </label>
-                <input
-                  type="text"
+                <select
                   id="optionName"
-                  placeholder="Size, Color, Material, etc."
                   value={newOptionName}
                   onChange={(e) => setNewOptionName(e.target.value)}
                   className="block w-full p-3 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm transition-colors"
-                />
+                >
+                  <option value="">Select an option</option>
+                  <option value="size">Size</option>
+                  <option value="color">Color</option>
+                </select>
               </div>
               
-              <div>
-                <label htmlFor="optionValues" className="block text-sm font-medium text-gray-600 mb-2">
-                  Option Values (comma separated)
-                </label>
-                <input
-                  type="text"
-                  id="optionValues"
-                  placeholder="Small, Medium, Large"
-                  value={newOptionValues}
-                  onChange={(e) => setNewOptionValues(e.target.value)}
-                  className="block w-full p-3 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm transition-colors"
-                />
-              </div>
+              {newOptionName && !['size', 'color'].includes(newOptionName.toLowerCase()) && (
+                <div>
+                  <label htmlFor="optionValues" className="block text-sm font-medium text-gray-600 mb-2">
+                    Option Values (comma separated)
+                  </label>
+                  <input
+                    type="text"
+                    id="optionValues"
+                    placeholder="Small, Medium, Large"
+                    value={newOptionValues}
+                    onChange={(e) => setNewOptionValues(e.target.value)}
+                    className="block w-full p-3 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm transition-colors"
+                  />
+                </div>
+              )}
               
-              <div className="flex justify-end space-x-3 pt-2">
+              <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => setShowAddOption(false)}

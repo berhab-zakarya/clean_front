@@ -6,7 +6,7 @@ import { PreferencesMenu } from "./components/PreferencesMenu"
 import { SidebarFooter } from "./components/SidebarFooter"
 import Logo from "@/components/common/Logo"
 import { useStore } from "@/hooks/useStore"
-import { LockIcon } from "lucide-react"
+import { LockIcon, ShieldAlertIcon } from "lucide-react"
 
 export default function Sidebar() {
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -33,35 +33,46 @@ export default function Sidebar() {
     initializeSidebar();
   }, [checkStoreExistence]);
 
+  // Theme class based on dark mode
+  const themeClass = isDarkMode 
+    ? "bg-gray-900 text-gray-100 border-gray-700" 
+    : "bg-white text-gray-800 border-gray-200";
+
   // Show loading state
   if (loading) {
     return (
-      <aside className="w-64 h-screen flex flex-col bg-white border-r border-gray-200 font-['Outfit']">
+      <aside className={`w-64 h-screen flex flex-col ${themeClass} border-r font-['Outfit']`}>
         <div className="flex items-center justify-center h-full">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-800"></div>
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-t-2 border-blue-500"></div>
         </div>
       </aside>
     );
   }
 
-  console.log('Sidebar render - hasStore:', hasStore); // Debug log
-
   return (
-    <aside className={`w-64 h-screen flex flex-col bg-white border-r border-gray-200 font-['Outfit'] relative`}>
+    <aside className={`w-64 h-screen flex flex-col ${themeClass} border-r font-['Outfit'] relative shadow-sm`}>
       {!hasStore && (
-        <div className="absolute inset-0 bg-gray-100/50 backdrop-blur-[2px] flex flex-col items-center justify-center z-50">
-          <LockIcon className="w-8 h-8 text-gray-400 mb-2" />
-          <p className="text-sm text-gray-500 font-medium text-center px-4">
-            Create a store to unlock dashboard
-          </p>
+        <div className="absolute inset-0 bg-gray-900/70 backdrop-blur-sm flex flex-col items-center justify-center z-50">
+          <div className="flex flex-col items-center px-6 py-8 bg-white/10 backdrop-blur-md rounded-xl shadow-lg border border-white/20">
+            <div className="bg-blue-500/20 p-4 rounded-full mb-4">
+              <LockIcon className="w-8 h-8 text-blue-500" />
+            </div>
+            <h3 className="text-white font-semibold text-lg mb-2">Dashboard Locked</h3>
+            <p className="text-sm text-gray-200 font-medium text-center mb-4">
+              Create a store to unlock all dashboard features
+            </p>
+            <button className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors font-medium text-sm">
+              Create Store
+            </button>
+          </div>
         </div>
       )}
 
-      <div className={`p-6 ${!hasStore ? 'pointer-events-none' : ''}`}>
+      <div className={`p-6 ${!hasStore ? 'opacity-50 pointer-events-none' : ''}`}>
         <div className="flex justify-center mb-8">
           <a 
             href="#" 
-            className="transform transition-all duration-300 hover:scale-105 hover:opacity-80"
+            className="transform transition-all duration-300 hover:scale-105"
           >
             <div className="relative transition-transform duration-300 hover:rotate-2">
               <Logo />
@@ -75,7 +86,9 @@ export default function Sidebar() {
         </div>
       </div>
       
-      <SidebarFooter />
+      <div className="mt-auto">
+        <SidebarFooter />
+      </div>
     </aside>
   );
 }

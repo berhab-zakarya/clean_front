@@ -148,10 +148,12 @@ export function useStore() {
       
       // Always verify with API
       await checkStoreExistence();
+      // Get all stores
+      await getAllStores();
     };
 
     initializeStore();
-  }, [checkStoreExistence]);
+  }, [checkStoreExistence, getAllStores]);
 
   return {
     loading,

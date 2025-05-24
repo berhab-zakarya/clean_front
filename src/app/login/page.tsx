@@ -18,7 +18,7 @@ import { useStore } from "@/hooks/useStore";
 
 export default function LoginPage() {
   const { login, loading } = useAuth();
-  const { checkStoreExistence } = useStore();
+  const { checkStoreExistence, getAllStores } = useStore();
   const router = useRouter();
   const [formData, setFormData] = useState({
     email: "",
@@ -68,10 +68,17 @@ export default function LoginPage() {
       // Show success toast
       showSuccessToast("Login successful!");
 
-      // تعديل التوجيه مع إضافة await
+      // Redirect based on store existence
       if (hasStore) {
-        console.log('Redirecting to dashboard');
-        await router.push("/dashboard");
+        // Get all stores and redirect to the first store's dashboard
+        const stores = await getAllStores();
+        if (stores && stores.length > 0) {
+          console.log('Redirecting to store dashboard:', stores[0].id);
+          await router.push(`/dashboard/${stores[0].id}`);
+        } else {
+          console.log('Redirecting to dashboard');
+          await router.push("/dashboard");
+        }
       } else {
         console.log('Redirecting to store setup');
         await router.push("/dashboard/StoreSetupGuide");
@@ -193,7 +200,7 @@ export default function LoginPage() {
                     title={loading ? "Logging in..." : "Log In"}
                     className="w-[360px] h-[56px] text-[16px] bg-[#1E3A8A] text-white rounded-full py-3 text-base font-medium hover:bg-blue-700 transition-colors"
                     onClick={handleSubmit}
-                    disabled={loading}
+                  
                   />
                 </div>
               </div>
@@ -202,7 +209,7 @@ export default function LoginPage() {
             <div className="mt-6 text-center">
               <span className="text-gray-500">Don't have an account yet? </span>
               <Link
-                href="/singup"
+                href="/signup"
                 className="text-blue-800 font-medium hover:underline"
               >
                 Sign up

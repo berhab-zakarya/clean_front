@@ -385,4 +385,59 @@ const CollapseButton = forwardRef<
 
 CollapseButton.displayName = "CollapseButton";
 
+interface TreeItemProps {
+  value: string
+  label: React.ReactNode
+  icon?: React.ReactNode
+  defaultExpanded?: boolean
+  onExpandedChange?: (expanded: boolean) => void
+  onClick?: () => void
+  children?: React.ReactNode
+}
+
+export const TreeItem: React.FC<TreeItemProps> = ({
+  value,
+  label,
+  icon,
+  defaultExpanded = false,
+  onExpandedChange,
+  onClick,
+  children
+}) => {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded)
+
+  const handleExpandedChange = (expanded: boolean) => {
+    setIsExpanded(expanded)
+    onExpandedChange?.(expanded)
+  }
+
+  return (
+    <div className="flex flex-col">
+      <div 
+        className="flex items-center gap-2 px-2 py-1 hover:bg-gray-700 rounded cursor-pointer"
+        onClick={onClick}
+      >
+        {icon}
+        {label}
+        {children && (
+          <button
+            className="ml-auto"
+            onClick={(e) => {
+              e.stopPropagation()
+              handleExpandedChange(!isExpanded)
+            }}
+          >
+            {isExpanded ? "▼" : "▶"}
+          </button>
+        )}
+      </div>
+      {isExpanded && children && (
+        <div className="ml-4">
+          {children}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export { CollapseButton, File, Folder, Tree, type TreeViewElement };

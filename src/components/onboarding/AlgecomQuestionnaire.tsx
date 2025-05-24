@@ -7,8 +7,21 @@ import { Checkbox } from "../common/Checkbox";
 import { RadioGroup, RadioGroupItem } from "../common/RadioGroup";
 import { usePlans } from "@/hooks/usePlans";
 import Button from "../common/Button";
+import { useRouter } from "next/navigation";
+
+type Plan = {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  is_popular: boolean;
+  features: {
+    features: string[];
+  };
+};
 
 export default function AlgecomQuestionnaire() {
+  const router = useRouter();
   const [selections, setSelections] = useState({
     sellingChannels: [],
     businessStage: "",
@@ -156,6 +169,10 @@ export default function AlgecomQuestionnaire() {
     }));
   };
 
+  const handlePlanClick = (planId: number) => {
+    router.push(`/dashboard/invoice?planId=${planId}`);
+  };
+
   const CARDS = steps.map((step, index) => ({
     id: step.id,
     content: (() => {
@@ -293,52 +310,57 @@ export default function AlgecomQuestionnaire() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                {displayPlans.map((plan, idx) => (
-                  <div
-                    key={plan.id}
-                    className={`relative flex flex-col border rounded-xl px-4 py-6 bg-white ${
-                      plan.is_popular
-                        ? "border-[#1E3A8A] shadow-lg"
-                        : "border-[#C7C7D1]"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xl font-bold">{plan.name}</span>
-                      {plan.is_popular && (
-                        <span className="bg-[#FF914D] text-white text-xs font-semibold px-3 py-1 rounded-full">
-                          Most Popular
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-gray-400 text-sm mb-2 line-clamp-2">
-                      {plan.description}
-                    </span>
-                    <div className="flex items-baseline gap-1 mb-2">
-                      <span className="text-2xl font-bold text-[#1E3A8A]">
-                        {plan.price} DZD
+                {displayPlans.map((plan: Plan | undefined) => (
+                  plan && (
+                    <div
+                      key={plan.id}
+                      className={`relative flex flex-col border rounded-xl px-4 py-6 bg-white ${
+                        plan.is_popular
+                          ? "border-[#1E3A8A] shadow-lg"
+                          : "border-[#C7C7D1]"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xl font-bold">{plan.name}</span>
+                        {plan.is_popular && (
+                          <span className="bg-[#FF914D] text-white text-xs font-semibold px-3 py-1 rounded-full">
+                            Most Popular
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-gray-400 text-sm mb-2 line-clamp-2">
+                        {plan.description}
                       </span>
-                      <span className="text-sm text-gray-400">/month</span>
+                      <div className="flex items-baseline gap-1 mb-2">
+                        <span className="text-2xl font-bold text-[#1E3A8A]">
+                          {plan.price} DZD
+                        </span>
+                        <span className="text-sm text-gray-400">/month</span>
+                      </div>
+                      <hr className="my-2" />
+                      <ul className="mb-4 space-y-2 flex-grow">
+                        {plan.features?.features
+                          ?.slice(0, 4)
+                          .map((feature: string, i: number) => (
+                            <li
+                              key={i}
+                              className="flex items-center gap-2 text-sm"
+                            >
+                              <span className="text-[#FF914D]">★</span>
+                              <span className="font-medium text-[#1E3A8A]">
+                                {feature}
+                              </span>
+                            </li>
+                          ))}
+                      </ul>
+                      <Button 
+                        className="w-full bg-[#1E3A8A] text-white rounded-full py-2 text-sm font-medium"
+                        onClick={() => handlePlanClick(plan.id)}
+                      >
+                        Try {plan.name}
+                      </Button>
                     </div>
-                    <hr className="my-2" />
-                    <ul className="mb-4 space-y-2 flex-grow">
-                      {plan.features.features
-                        .slice(0, 4)
-                        .map((feature: string, i: number) => (
-                          <li
-                            key={i}
-                            className="flex items-center gap-2 text-sm"
-                          >
-                            <span className="text-[#FF914D]">★</span>
-                            <span className="font-medium text-[#1E3A8A]">
-                              {feature}
-                            </span>
-                          </li>
-                        ))}
-                    </ul>
-                    <Button className="w-full  bg-[#1E3A8A] text-white rounded-full py-2 text-sm font-medium">
-                      Try {plan.name}
-                    </Button>
-                  </div>
+                  )
                 ))}
               </div>
             )}
@@ -350,12 +372,12 @@ export default function AlgecomQuestionnaire() {
                  View plan details
               </button>
               <button
-                className="bg-white text-[#1E3A8A] font-[500] rounded-full px-4 py-2  flex items-center gap-1 text-[16px]"
+                className="bg-white text-[#1E3A8A] font-[500] rounded-full px-4 py-2 flex items-center gap-1 text-[16px]"
                 onClick={() => {
                   /* Submit or finish logic here */
                 }}
               >
-                Skip, I’ll decide later<ArrowRight className="w-4 h-4" />
+                Skip, I&apos;ll decide later<ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>

@@ -1,352 +1,670 @@
-"use client";
-import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Input } from "@/components/common/Input";
-import Button from "@/components/common/Button";
-import { useStore } from "@/hooks/useStore";
-import { toast } from "react-hot-toast";
-import {
-  Terminal,
-  TypingAnimation,
-  AnimatedSpan,
-} from "@/components/magicui/terminal";
-import MergedComponent from "./MergedComponent";
+"use client"
+import { useState, useRef, useEffect, useCallback, memo } from "react"
+import type React from "react"
+import dynamic from 'next/dynamic'
+import { useRouter } from "next/navigation"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { useStore } from "@/hooks/useStore"
+import { toast } from "react-hot-toast"
+import { Terminal, TypingAnimation, AnimatedSpan } from "@/components/magicui/terminal"
+import { Store, Sparkles, Rocket, Globe, ExternalLink, CheckCircle, Clock, Zap } from "lucide-react"
+import debounce from 'lodash/debounce'
+
+// Lazy load the MergedComponent
+const DeploymentBackground = dynamic(() => import("@/components/dashboard/StoreSetupGuide/DeploymentBackground"), {
+  loading: () => <div className="animate-pulse bg-gradient-to-r from-indigo-500/10 to-purple-600/10 rounded-lg h-80 border border-indigo-500/20"></div>
+})
 
 interface CreateStoreProps {
-  onComplete: () => void;
+  onComplete: () => void
 }
 
+// Enhanced FeatureSpotlight component with new design
+const FeatureSpotlight = memo(({
+  icon,
+  title,
+  description,
+  gradient = "from-indigo-500 to-purple-600"
+}: {
+  icon: React.ReactNode
+  title: string
+  description: string
+  gradient?: string
+}) => {
+  return (
+    <div className="relative group">
+      <div className={`absolute -inset-0.5 bg-gradient-to-r ${gradient} opacity-0 group-hover:opacity-20 rounded-xl blur-sm transition-all duration-500`}></div>
+      <div className="relative flex items-start gap-4 bg-gradient-to-br from-gray-900/90 to-gray-800/50 p-6 rounded-xl border border-gray-700/50 group-hover:border-indigo-400/50 transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/10 backdrop-blur-sm">
+        <div className={`p-3 bg-gradient-to-br ${gradient} rounded-lg text-white shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+          {icon}
+        </div>
+        <div className="flex-1">
+          <h3 className="text-white font-semibold text-lg mb-2 group-hover:text-indigo-300 transition-colors duration-300">{title}</h3>
+          <p className="text-gray-400 text-sm leading-relaxed group-hover:text-gray-300 transition-colors duration-300">{description}</p>
+        </div>
+      </div>
+    </div>
+  )
+})
+
+FeatureSpotlight.displayName = 'FeatureSpotlight'
+
 export const CreateStore = ({ onComplete }: CreateStoreProps) => {
-  const router = useRouter();
-  const { createStore, loading: storeLoading, error } = useStore();
+  const router = useRouter()
+  const { createStore, loading: storeLoading } = useStore()
   const [formData, setFormData] = useState({
     store_name: "",
     subdomain: "",
     store_type: "nextjs",
-  });
-  const [loading, setLoading] = useState(false);
-  const [storeUrl, setStoreUrl] = useState<string | null>(null);
-  const [isDeploying, setIsDeploying] = useState(false);
-  const wsRef = useRef<WebSocket | null>(null);
+  })
+  const [loading, setLoading] = useState(false)
+  const [storeUrl, setStoreUrl] = useState<string | null>(null)
+  const [terminalLines, setTerminalLines] = useState<{ type: "typing" | "span"; text: string; className?: string; delay?: number }[]>([])
+  const [isDeploying, setIsDeploying] = useState(false)
+  const [deploymentComplete, setDeploymentComplete] = useState(false)
+  const wsRef = useRef<WebSocket | null>(null)
+  const terminalScrollRef = useRef<HTMLDivElement | null>(null)
 
-  // Terminal log state
-  const [terminalLines, setTerminalLines] = useState<
-    {
-      type: "typing" | "span";
-      text: string;
-      className?: string;
-      delay?: number;
-    }[]
-  >([]);
-
-  // Terminal scroll ref
-  const terminalScrollRef = useRef<HTMLDivElement | null>(null);
-
-  // Auto-scroll terminal to bottom on new line
-  useEffect(() => {
+  // Enhanced scroll handler
+  const handleScroll = useCallback(() => {
     if (terminalScrollRef.current) {
-      terminalScrollRef.current.scrollTop =
-        terminalScrollRef.current.scrollHeight;
+      terminalScrollRef.current.scrollTop = terminalScrollRef.current.scrollHeight
     }
-  }, [terminalLines]);
+  }, [])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  // Add a new line to the terminal log
-  const addTerminalLine = (line: {
-    type: "typing" | "span";
-    text: string;
-    className?: string;
-    delay?: number;
-  }) => {
-    setTerminalLines((prev) => [...prev, line]);
-  };
-
-  const handleWebSocket = (storeId: number) => {
-    const ws = new WebSocket(`ws://127.0.0.1:8000/ws/deployment/${storeId}/`);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      addTerminalLine({
-        type: "typing",
-        text: `> Deploying store #${storeId}...`,
-        className: "text-[#00ff9d]",
-      });
-    };
-
-    ws.onmessage = (event) => {
-      let msg = event.data;
-      let status = "";
-      let url = "";
-      try {
-        const data = JSON.parse(event.data);
-        msg = data.message || event.data;
-        status = data.status;
-        url = data.url || data.store_url;
-      } catch {
-        // plain text
-      }
-
-      // Check if the message indicates server is running
-      if (msg.includes("Next.js server is running")) {
-        addTerminalLine({
-          type: "span",
-          text: "✓ Store deployed successfully!",
-          className: "text-[#00ff9d] font-semibold",
-        });
-
-        // Get the store URL from the WebSocket message
-        if (url) {
-          setStoreUrl(url);
-          // Add a small delay before opening the URL
-          setTimeout(() => {
-            window.open(url, "_blank");
-            // Close WebSocket and redirect after opening URL
-            if (wsRef.current) {
-              wsRef.current.close();
-            }
+  // Enhanced IntersectionObserver with staggered animations
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry, index) => {
+          if (entry.isIntersecting) {
             setTimeout(() => {
-              router.push("/dashboard");
-            }, 2000);
-          }, 1000);
-        }
-      } else if (status === "failed") {
-        addTerminalLine({
-          type: "span",
-          text: "✖ Deployment failed!",
-          className: "text-[#ff4d4d] font-semibold",
-        });
-        ws.close();
-      } else if (msg) {
-        addTerminalLine({
-          type: "span",
-          text: msg,
-          className: "text-[#00ffff]",
-        });
-      }
-    };
+              entry.target.classList.add('animate-fade-up')
+            }, index * 100)
+            observer.unobserve(entry.target)
+          }
+        })
+      },
+      { threshold: 0.1, rootMargin: '50px' }
+    )
 
-    ws.onerror = () => {
-      addTerminalLine({
-        type: "span",
-        text: "WebSocket error during deployment.",
-        className: "text-[#ff4d4d] font-semibold",
-      });
-    };
-  };
+    const elements = document.querySelectorAll('.animate-on-scroll')
+    elements.forEach((el) => observer.observe(el))
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setLoading(true);
-    setTerminalLines([]); // Reset terminal log
-    setIsDeploying(true);
+    return () => observer.disconnect()
+  }, [])
+
+  // Enhanced WebSocket handler with better error handling and URL validation
+  const handleWebSocket = useCallback((storeId: number) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.close()
+    }
+
+    const initialLines = [{
+      type: "span" as const,
+      text: "🚀 Initializing deployment pipeline...",
+      className: "text-cyan-400 font-medium",
+    }]
+    setTerminalLines(initialLines)
 
     try {
-      const response = await createStore(formData);
-      if (response && response.message) {
-        toast.success(response.message);
+      const ws = new WebSocket(`ws://127.0.0.1:8000/ws/deployment/${storeId}/`)
+      wsRef.current = ws
 
-        // Show initial command in terminal
-        addTerminalLine({
-          type: "typing",
-          text: `> Creating store "${formData.store_name}"...`,
-          className: "text-[#00ff9d]",
-        });
-
-        // Show API message
-        addTerminalLine({
-          type: "span",
-          text: response.message,
-          className: "text-[#00ffff]",
-        });
-
-        // Show store URL if available
-        if (response.store_url) {
-          addTerminalLine({
-            type: "span",
-            text: `Store URL: ${response.store_url}`,
-            className: "text-[#00ff9d]",
-          });
+      // Connection timeout
+      const connectionTimeout = setTimeout(() => {
+        if (ws.readyState !== WebSocket.OPEN) {
+          setTerminalLines(prev => [...prev, {
+            type: "span" as const,
+            text: "⚠️ Connection timeout. Please check if the deployment server is running.",
+            className: "text-amber-400 font-semibold",
+          }])
+          ws.close()
+          setIsDeploying(false)
         }
+      }, 10000)
 
-        // Connect to WebSocket for deployment status
-        if (response.id) {
-          handleWebSocket(response.id);
+      // Deployment timeout (5 minutes)
+      const deploymentTimeout = setTimeout(() => {
+        if (ws.readyState === WebSocket.OPEN && !deploymentComplete) {
+          setTerminalLines(prev => [...prev, {
+            type: "span" as const,
+            text: "⏰ Deployment is taking longer than usual. This is normal for first-time deployments.",
+            className: "text-amber-400 font-medium",
+          }])
+        }
+      }, 300000)
+
+      ws.onopen = () => {
+        clearTimeout(connectionTimeout)
+        setTerminalLines(prev => [...prev, {
+          type: "span" as const,
+          text: "✅ Connected to deployment server",
+          className: "text-emerald-400 font-medium",
+        }, {
+          type: "typing" as const,
+          text: `📦 Preparing deployment for store #${storeId}...`,
+          className: "text-indigo-400 font-medium",
+        }])
+      }
+
+      ws.onclose = (event) => {
+        clearTimeout(connectionTimeout)
+        clearTimeout(deploymentTimeout)
+        
+        if (!deploymentComplete) {
+          setTerminalLines(prev => [...prev, {
+            type: "span" as const,
+            text: `🔌 Connection closed (${event.code === 1000 ? 'Normal' : `Code: ${event.code}`})`,
+            className: event.code === 1000 ? "text-gray-400" : "text-amber-400",
+          }])
+          setIsDeploying(false)
         }
       }
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to create store");
-      addTerminalLine({
-        type: "span",
-        text: err?.message || "Failed to create store",
-        className: "text-[#ff4d4d]",
-      });
-      setIsDeploying(false);
-    } finally {
-      setLoading(false);
+
+      ws.onmessage = (event) => {
+        let msg = event.data
+        let status = ""
+        let url = ""
+        
+        try {
+          const data = JSON.parse(event.data)
+          msg = data.message || event.data
+          status = data.status
+          url = data.url || data.store_url
+        } catch {
+          // Handle plain text messages
+        }
+
+        // Check for successful deployment
+        if (msg.includes("Next.js server is running") || status === "success" || msg.includes("deployed successfully")) {
+          clearTimeout(deploymentTimeout)
+          setDeploymentComplete(true)
+          
+          setTerminalLines(prev => [...prev, {
+            type: "span" as const,
+            text: "🎉 Store deployed successfully!",
+            className: "text-emerald-400 font-bold text-lg",
+          }])
+          
+          if (url) {
+            // Validate and clean URL
+            let cleanUrl = url.trim()
+            if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+              cleanUrl = `https://${cleanUrl}`
+            }
+            
+            setStoreUrl(cleanUrl)
+            setTerminalLines(prev => [...prev, {
+              type: "span" as const,
+              text: `🌐 Store URL: ${cleanUrl}`,
+              className: "text-emerald-400 font-medium",
+            }])
+          }
+          
+          // Keep the deployment view visible for at least 5 seconds before redirecting
+          setTimeout(() => {
+            ws.close()
+            router.push("/dashboard/StoreSetupGuide")
+            onComplete()
+          }, 5000)
+          
+        } else if (status === "failed" || msg.toLowerCase().includes("error") || msg.toLowerCase().includes("failed")) {
+          clearTimeout(deploymentTimeout)
+          setTerminalLines(prev => [...prev, {
+            type: "span" as const,
+            text: `❌ Deployment failed: ${msg}`,
+            className: "text-red-400 font-semibold",
+          }])
+          ws.close()
+          setIsDeploying(false)
+          toast.error("Deployment failed. Please try again.")
+        } else if (msg.trim()) {
+          setTerminalLines(prev => [...prev, {
+            type: "span" as const,
+            text: `📋 ${msg}`,
+            className: "text-cyan-300 text-sm",
+          }])
+        }
+
+        // Auto-scroll terminal
+        setTimeout(handleScroll, 100)
+      }
+
+      ws.onerror = (error) => {
+        clearTimeout(connectionTimeout)
+        clearTimeout(deploymentTimeout)
+        setTerminalLines(prev => [...prev, {
+          type: "span" as const,
+          text: "🚨 WebSocket connection error. Please check your network and try again.",
+          className: "text-red-400 font-semibold",
+        }])
+        console.error("WebSocket error:", error)
+        setIsDeploying(false)
+        toast.error("Connection error during deployment")
+      }
+
+      return () => {
+        clearTimeout(connectionTimeout)
+        clearTimeout(deploymentTimeout)
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.close()
+        }
+      }
+    } catch (error) {
+      setTerminalLines(prev => [...prev, {
+        type: "span" as const,
+        text: "🚨 Failed to establish WebSocket connection. Please ensure the deployment server is running.",
+        className: "text-red-400 font-semibold",
+      }])
+      setIsDeploying(false)
+      toast.error("Failed to connect to deployment server")
     }
-  };
+  }, [router, onComplete, deploymentComplete, handleScroll])
+
+  // Enhanced form change handler with validation
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    
+    // Clean subdomain input
+    if (name === 'subdomain') {
+      const cleanValue = value.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 20)
+      setFormData((prev) => ({ ...prev, [name]: cleanValue }))
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }))
+    }
+  }, [])
+
+  // Enhanced form submission with better validation
+  const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    
+    // Validation
+    if (!formData.store_name.trim()) {
+      toast.error("Please enter a store name")
+      return
+    }
+    
+    if (!formData.subdomain.trim()) {
+      toast.error("Please enter a subdomain")
+      return
+    }
+    
+    if (formData.subdomain.length < 3) {
+      toast.error("Subdomain must be at least 3 characters long")
+      return
+    }
+
+    setLoading(true)
+    setTerminalLines([])
+    setIsDeploying(true)
+    setDeploymentComplete(false)
+    setStoreUrl(null)
+
+    try {
+      const response = await createStore(formData)
+      if (response?.message) {
+        toast.success(response.message)
+        setTerminalLines([
+          {
+            type: "typing",
+            text: `🏪 Creating store "${formData.store_name}"...`,
+            className: "text-indigo-400 font-medium",
+          },
+          {
+            type: "span",
+            text: `✅ ${response.message}`,
+            className: "text-emerald-400",
+          },
+        ])
+        
+        if (response.id) {
+          // Add a small delay before starting WebSocket connection
+          setTimeout(() => {
+            handleWebSocket(response.id)
+          }, 1000)
+        } else {
+          throw new Error("No store ID received from server")
+        }
+      } else {
+        throw new Error("No response received from server")
+      }
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to create store"
+      toast.error(errorMessage)
+      setTerminalLines([{
+        type: "span",
+        text: `❌ Error: ${errorMessage}`,
+        className: "text-red-400 font-semibold",
+      }])
+      setIsDeploying(false)
+    } finally {
+      setLoading(false)
+    }
+  }, [formData, createStore, handleWebSocket])
+
+  // Function to open store URL
+  const openStoreUrl = useCallback(() => {
+    if (storeUrl) {
+      window.open(storeUrl, "_blank", "noopener,noreferrer")
+      toast.success("Opening your store in a new tab!")
+    }
+  }, [storeUrl])
+
+  // Cleanup WebSocket on unmount
+  useEffect(() => {
+    return () => {
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.close()
+      }
+    }
+  }, [])
 
   return (
-    <>
-      {isDeploying && (
-        <div className="fixed inset-0 z-50">
-          <MergedComponent 
-            content={
-              <div className="w-full max-w-4xl mx-auto">
-                <div className="flex flex-col items-center mb-6">
-                  <h1 className="text-3xl font-bold text-white mb-4">Deploying Your Store</h1>
-                  <p className="text-gray-300 text-center mb-8">
-                    Please wait while we set up your store. This may take a few minutes.
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-900 to-indigo-900/20 flex flex-col relative overflow-hidden">
+      {/* Background decorations */}
+      <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-purple-600/5"></div>
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl"></div>
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl"></div>
+      
+      {/* Enhanced Header */}
+      <header className="relative w-full py-6 px-4 border-b border-gray-800/50 backdrop-blur-sm animate-slide-in">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg">
+              <Store className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-white">Store Creator</h1>
+              <p className="text-sm text-gray-400">Deploy your store in minutes</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/20 rounded-full border border-emerald-500/30">
+              <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></div>
+              <span className="text-xs font-medium text-emerald-400">System Online</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="relative flex-1 w-full max-w-6xl mx-auto px-4 py-8">
+        {/* Enhanced Deployment Modal */}
+        {isDeploying && (
+          <div className="fixed inset-0 z-50">
+            <DeploymentBackground
+              content={
+                <div className="w-full h-full flex items-center justify-center p-4">
+                  <div className="w-full max-w-4xl mx-auto">
+                    <div className="flex flex-col items-center mb-8">
+                      <div className="relative mb-6">
+                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full blur-lg opacity-50 animate-pulse"></div>
+                        <div className="relative p-4 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full">
+                          <Rocket className="h-12 w-12 text-white animate-bounce" />
+                        </div>
+                      </div>
+                      <h1 className="text-4xl font-bold text-white mb-3 text-center">
+                        {deploymentComplete ? "🎉 Deployment Complete!" : "🚀 Deploying Your Store"}
+                      </h1>
+                      <p className="text-gray-300 text-center max-w-md text-lg">
+                        {deploymentComplete 
+                          ? "Your store is now live and ready for customers!"
+                          : "We're setting up your professional online store. This process typically takes 2-3 minutes."
+                        }
+                      </p>
+                    </div>
+
+                    {/* Enhanced Terminal */}
+                    <div className="relative w-full max-h-[50vh] overflow-y-auto bg-gradient-to-br from-gray-950/90 to-gray-900/90 rounded-2xl border border-gray-700/50 backdrop-blur-sm shadow-2xl">
+                      
+                      <div className="p-6" ref={terminalScrollRef}>
+                        <Terminal className="text-white bg-transparent">
+                          {terminalLines.length === 0 ? (
+                            <AnimatedSpan className="text-cyan-400 text-sm font-mono">
+                              🔄 Connecting to deployment server...
+                            </AnimatedSpan>
+                          ) : (
+                            terminalLines.slice(-50).map((line, idx) => (
+                              line.type === "typing" ? (
+                                <TypingAnimation
+                                  key={idx}
+                                  className={`${line.className || "text-emerald-400"} text-sm font-mono mb-1 block`}
+                                  delay={idx * 50}
+                                >
+                                  {line.text}
+                                </TypingAnimation>
+                              ) : (
+                                <AnimatedSpan
+                                  key={idx}
+                                  className={`${line.className || "text-cyan-400"} text-sm font-mono mb-1 block`}
+                                  delay={idx * 50}
+                                >
+                                  {line.text}
+                                </AnimatedSpan>
+                              )
+                            ))
+                          )}
+                        </Terminal>
+                      </div>
+                    </div>
+
+                    {/* Enhanced Store URL Display */}
+                    {storeUrl ? (
+                      <div className="mt-8 text-center">
+                        <div className="inline-block bg-gradient-to-r from-emerald-500/20 to-green-500/20 p-6 rounded-2xl border border-emerald-500/30 backdrop-blur-sm">
+                          <div className="flex items-center justify-center gap-3 mb-4">
+                            <CheckCircle className="h-6 w-6 text-emerald-400" />
+                            <span className="text-emerald-400 font-bold text-lg">Your Store is Live!</span>
+                          </div>
+                          <button
+                            onClick={openStoreUrl}
+                            className="flex items-center gap-2 text-white bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-3 rounded-lg font-semibold hover:from-indigo-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                          >
+                            <Globe className="h-5 w-5" />
+                            Visit Your Store
+                            <ExternalLink className="h-4 w-4" />
+                          </button>
+                          <p className="text-sm text-gray-400 mt-2 font-mono">{storeUrl}</p>
+                        </div>
+                        <p className="text-gray-400 text-sm mt-4">
+                          Redirecting to setup guide in {deploymentComplete ? '5' : '...'} seconds...
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="mt-8 text-center">
+                        <div className="inline-block bg-gradient-to-r from-amber-500/20 to-orange-500/20 p-6 rounded-2xl border border-amber-500/30 backdrop-blur-sm">
+                          <div className="flex items-center justify-center gap-3 mb-2">
+                            <Clock className="h-5 w-5 text-amber-400 animate-spin" />
+                            <span className="text-amber-400 font-semibold">Preparing your store...</span>
+                          </div>
+                          <p className="text-gray-400 text-sm">Your store URL will appear here once deployment is complete</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              }
+            />
+          </div>
+        )}
+
+        {/* Enhanced Create Store Form */}
+        {!isDeploying && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            {/* Enhanced Form */}
+            <div className="relative animate-on-scroll">
+              <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl blur-sm opacity-20"></div>
+              <div className="relative bg-gradient-to-br from-gray-900/90 to-gray-800/50 rounded-2xl p-8 border border-gray-700/50 backdrop-blur-sm shadow-2xl">
+                <div className="flex flex-col items-center mb-8">
+                  <div className="p-3 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl mb-4">
+                    <Store className="h-8 w-8 text-white" />
+                  </div>
+                  <h1 className="text-3xl font-bold text-white mb-2">Create Your Store</h1>
+                  <p className="text-gray-400 text-center leading-relaxed">
+                    Launch your professional online business in minutes with our streamlined setup process.
                   </p>
                 </div>
                 
-                {/* Terminal output */}
-                {terminalLines.length > 0 && (
-                  <div className="w-full max-h-[60vh] flex flex-col [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                    <div
-                      className="flex-1 overflow-y-auto p-6 bg-black/50 rounded-xl backdrop-blur-sm [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
-                      ref={terminalScrollRef}
-                    >
-                      <Terminal className="text-white bg-[#0a0a0a] rounded-lg shadow-xl border border-gray-800 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                        {terminalLines.map((line, idx) =>
-                          line.type === "typing" ? (
-                            <TypingAnimation
-                              key={idx}
-                              className={`${
-                                line.className || "text-[#00ff9d]"
-                              } text-base font-mono`}
-                              delay={idx * 200}
-                            >
-                              {line.text}
-                            </TypingAnimation>
-                          ) : (
-                            <AnimatedSpan
-                              key={idx}
-                              className={`${
-                                line.className || "text-[#00ffff]"
-                              } text-base font-mono`}
-                              delay={idx * 200 + 100}
-                            >
-                              <span>{line.text}</span>
-                            </AnimatedSpan>
-                          )
-                        )}
-                      </Terminal>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div>
+                    <label htmlFor="store_name" className="block text-white text-sm font-semibold mb-2">
+                      Store Name <span className="text-indigo-400">*</span>
+                    </label>
+                    <Input
+                      id="store_name"
+                      name="store_name"
+                      value={formData.store_name}
+                      onChange={handleChange}
+                      placeholder="e.g. Alex's Premium Shop"
+                      required
+                      className="h-12 bg-gray-800/50 border-gray-600 text-white placeholder-gray-500 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-300"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="subdomain" className="block text-white text-sm font-semibold mb-2">
+                      Subdomain <span className="text-indigo-400">*</span>
+                    </label>
+                    <Input
+                      id="subdomain"
+                      name="subdomain"
+                      value={formData.subdomain}
+                      onChange={handleChange}
+                      placeholder="e.g. alexshop"
+                      required
+                      minLength={3}
+                      maxLength={20}
+                      pattern="[a-z0-9-]+"
+                      className="h-12 bg-gray-800/50 border-gray-600 text-white placeholder-gray-500 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-300"
+                    />
+                    <div className="mt-2 p-3 bg-gray-800/30 rounded-lg border border-gray-700/50">
+                      <p className="text-xs text-gray-400 mb-1">Your store will be available at:</p>
+                      <p className="text-sm font-mono text-indigo-400">
+                        https://{formData.subdomain || "yourstore"}.algecom.com
+                      </p>
                     </div>
                   </div>
-                )}
-
-                {/* Show store URL only after deployment */}
-                {storeUrl && (
-                  <div className="mt-8 text-center animate-fade-in">
-                    <span className="text-[#00ff9d] font-bold text-lg">
-                      🎉 Your store is live:
-                    </span>
-                    <br />
-                    <a
-                      href={storeUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[#00ffff] break-all text-xl font-semibold hover:text-[#00ff9d] transition"
-                    >
-                      {storeUrl}
-                    </a>
-                  </div>
-                )}
-              </div>
-            }
-          />
-        </div>
-      )}
-      <div
-        className={`relative max-w-2xl mx-auto mt-16 ${
-          isDeploying
-            ? "hidden"
-            : "bg-gradient-to-br from-[#1e293b] via-[#0f172a] to-[#1e293b]"
-        } rounded-3xl shadow-2xl p-10 border border-white/10 overflow-hidden z-10`}
-      >
-        {/* خلفية زخرفية عصرية */}
-        <div className="absolute -top-16 -right-16 w-64 h-64 bg-gradient-to-tr from-[#6366f1]/30 via-[#8b5cf6]/20 to-transparent rounded-full blur-3xl z-0"></div>
-        <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-gradient-to-br from-[#6366f1]/20 via-[#8b5cf6]/10 to-transparent rounded-full blur-3xl z-0"></div>
-        <div className="relative z-10">
-          {!isDeploying ? (
-            <>
-              <div className="flex flex-col items-center mb-6">
-                <span className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-tr from-[#6366f1] to-[#8b5cf6] shadow-lg mb-3">
-                  <svg
-                    className="w-8 h-8 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
+                  
+                  <Button
+                    type="submit"
+                    disabled={loading || storeLoading || !formData.store_name.trim() || !formData.subdomain.trim()}
+                    className="w-full h-12 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg transform hover:scale-105"
                   >
-                    <path d="M3 7l9-4 9 4M4 10v6a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 012-2h0a2 2 0 012 2v2a2 2 0 002 2h2a2 2 0 002-2v-6" />
-                  </svg>
-                </span>
-                <h1 className="text-4xl font-extrabold text-white mb-2 text-center drop-shadow-lg">
-                  Create Your Store
-                </h1>
-                <p className="text-gray-300 mb-4 text-center text-lg">
-                  Start by entering your store name and a unique subdomain.
-                </p>
+                    {loading || storeLoading ? (
+                      <div className="flex items-center gap-3">
+                        <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        <span>Creating Your Store...</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Rocket className="h-5 w-5" />
+                        <span>Deploy Store Now</span>
+                      </div>
+                    )}
+                  </Button>
+                </form>
               </div>
-            </>
-          ) : null}
-          
-          {/* Hide form when deploying */}
-          {!isDeploying && (
-            <form onSubmit={handleSubmit} className="space-y-8">
-              <div>
-                <Input
-                  label="Store Name"
-                  name="store_name"
-                  value={formData.store_name}
-                  onChange={handleChange}
-                  placeholder="e.g. Alex Shop"
-                  required
-                  radius="lg"
-                  className="text-lg shadow-md focus:ring-2 focus:ring-[#6366f1]/40 bg-white/5 border-white/10 text-white placeholder-gray-400"
-                />
-              </div>
-              <div>
-                <Input
-                  label="Subdomain"
-                  name="subdomain"
-                  value={formData.subdomain}
-                  onChange={handleChange}
-                  placeholder="e.g. alexshop"
-                  required
-                  radius="lg"
-                  className="text-lg shadow-md focus:ring-2 focus:ring-[#6366f1]/40 bg-white/5 border-white/10 text-white placeholder-gray-400"
-                />
-                <p className="text-xs text-gray-400 mt-1 ml-1">
-                  Your store will be available at:{" "}
-                  <span className="font-semibold text-[#00ffff]">
-                    {formData.subdomain || "yourstore"}.algecom.com
-                  </span>
-                </p>
-              </div>
-              <Button
-                type="submit"
-                disabled={loading || storeLoading}
-                // loading={loading || storeLoading}
-                className="w-full rounded-full py-3 text-lg font-bold bg-gradient-to-tr from-[#6366f1] to-[#8b5cf6] text-white shadow-xl hover:scale-105 hover:from-[#4f46e5] hover:to-[#7c3aed] transition-all duration-200"
-              >
-                {loading || storeLoading ? "Creating..." : "Create Store"}
-              </Button>
-            </form>
-          )}
-        </div>
-      </div>
-    </>
-  );
-};
+            </div>
 
-export default CreateStore;
+            {/* Enhanced Features Section */}
+            <div className="space-y-8 animate-on-scroll">
+              <div>
+                <h2 className="text-3xl font-bold text-white mb-4">Launch Your Dream Store</h2>
+                <p className="text-gray-400 text-lg leading-relaxed">
+                  Join thousands of entrepreneurs who've built successful online businesses with our platform.
+                </p>
+              </div>
+              
+              <div className="grid gap-6">
+                <FeatureSpotlight
+                  icon={<Zap className="h-6 w-6" />}
+                  title="Lightning Fast Deployment"
+                  description="Your store goes live in under 3 minutes with our automated deployment system and global CDN."
+                  gradient="from-yellow-500 to-orange-600"
+                />
+                <FeatureSpotlight
+                  icon={<Globe className="h-6 w-6" />}
+                  title="Professional Domain"
+                  description="Get a beautiful subdomain instantly, or connect your custom domain with one-click DNS setup."
+                  gradient="from-blue-500 to-indigo-600"
+                />
+                <FeatureSpotlight
+                  icon={<Sparkles className="h-6 w-6" />}
+                  title="Premium Templates"
+                  description="Choose from professionally designed, mobile-optimized templates that convert visitors into customers."
+                  gradient="from-purple-500 to-pink-600"
+                />
+              </div>
+              
+              {/* Enhanced Testimonial */}
+              <div className="relative">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-400 to-cyan-500 rounded-xl blur-sm opacity-20"></div>
+                <div className="relative bg-gradient-to-br from-gray-900/90 to-gray-800/50 p-6 rounded-xl border border-emerald-500/30 backdrop-blur-sm">
+                  <div className="flex items-start gap-4">
+                    <div className="h-12 w-12 rounded-full bg-gradient-to-r from-emerald-400 to-cyan-500 text-white flex items-center justify-center text-lg font-bold shadow-lg">
+                      SJ
+                    </div>
+                    <div className="flex-1">
+                      <blockquote className="text-gray-300 text-lg italic mb-3 font-medium">
+                        "I went from idea to $10K in monthly sales in just 2 weeks. The deployment was seamless!"
+                      </blockquote>
+                      <div>
+                        <p className="text-white font-semibold">Sarah Johnson</p>
+                        <p className="text-emerald-400 text-sm font-medium">Fashion Boutique • $50K+ Revenue</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  )
+}
+
+// Enhanced CSS animations
+const styles = `
+@keyframes slideIn {
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+`
+
+// Add styles to document
+if (typeof document !== 'undefined') {
+  const existingStyle = document.querySelector('style[data-performance-optimized]')
+  if (!existingStyle) {
+    const styleSheet = document.createElement('style')
+    styleSheet.textContent = styles
+    styleSheet.setAttribute('data-performance-optimized', 'true')
+    document.head.appendChild(styleSheet)
+  }
+}
+
+export default CreateStore

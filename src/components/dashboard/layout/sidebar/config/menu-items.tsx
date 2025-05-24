@@ -1,14 +1,30 @@
 import Image from 'next/image'
+import { dashboard, insight, customers, products, inbox, settings, help } from '@/lib/icons'
+import { LucideIcon } from 'lucide-react'
+import { IconType } from '../types'
 
-const iconComponent = (iconPath: string) => {
-  const IconComponent = () => {
+interface IconProps {
+  active?: boolean
+}
+
+const iconComponent = (iconPath: string): IconType => {
+  const IconComponent = ({ active }: IconProps) => {
     return (
       <Image 
         src={iconPath}
         alt="menu icon"
         width={20}
         height={20}
-        className="opacity-75 group-hover:opacity-100 transition-opacity "
+        className={`transition-all duration-200 ${
+          active 
+            ? 'brightness-0 saturate-100' 
+            : 'brightness-0 saturate-100'
+        }`}
+        style={{
+          filter: active 
+          ? 'brightness(0) saturate(100%) invert(12%) sepia(84%) saturate(4718%) hue-rotate(217deg) brightness(92%) contrast(92%)' 
+          : 'brightness(0) saturate(100%) invert(51%) sepia(0%) saturate(0%) hue-rotate(173deg) brightness(95%) contrast(87%)'
+      }}
       />
     )
   }
@@ -17,49 +33,49 @@ const iconComponent = (iconPath: string) => {
 }
 
 export const mainMenuItems = [
-  { 
-    icon: iconComponent('/assets/icons/sidebar/dashboard.svg'), 
-    text: "Dashboard", 
-    href: "/dashboard", 
-    active: true 
+  {
+    icon: iconComponent(dashboard),
+    text: "Dashboard",
+    href: (storeId: string) => `/dashboard/${storeId}`,
+    active: false
   },
-  { 
-    icon: iconComponent('/assets/icons/sidebar/insight_icon.svg'), 
-    text: "Insight", 
-    href: "#", 
-    active: false 
+  {
+    icon: iconComponent(insight),
+    text: "Insight",
+    href: (storeId: string) => `/dashboard/${storeId}/insights`,
+    active: false
   },
-  { 
-    icon: iconComponent('/assets/icons/sidebar/Customers.svg'), 
-    text: "Customers", 
-    href: "#/dashboard/Customers", 
-    active: false 
+  {
+    icon: iconComponent(customers),
+    text: "Orders",
+    href: (storeId: string) => `/dashboard/${storeId}/orders`,
+    active: false
   },
-  { 
-    icon: iconComponent('/assets/icons/sidebar/products_icon.svg'), 
-    text: "Products", 
-    href: "/dashboard/product", 
-    active: false 
+  {
+    icon: iconComponent(products),
+    text: "Products",
+    href: (storeId: string) => `/dashboard/${storeId}/product`,
+    active: false
   },
-  { 
-    icon: iconComponent('/assets/icons/sidebar/inbox_icon.svg'), 
-    text: "Inbox", 
-    href: "#", 
-    active: false 
+  {
+    icon: iconComponent(inbox),
+    text: "Inbox",
+    href: (storeId: string) => `/dashboard/${storeId}/inbox`,
+    active: false
   },
 ]
 
 export const preferencesItems = [
-  { 
-    icon: iconComponent('/assets/icons/sidebar/setting_icon.svg'), 
-    text: "Settings", 
-    href: "/dashboard/settings", 
-    active: false 
+  {
+    icon: iconComponent(settings),
+    text: "Settings",
+    href: (storeId: string) => `/dashboard/${storeId}/settings`,
+    active: false
   },
-  { 
-    icon: iconComponent('/assets/icons/sidebar/help_center_icon.svg'), 
-    text: "Help & Center", 
-    href: "#", 
-    active: false 
+  {
+    icon: iconComponent(help),
+    text: "Help & Center",
+    href: (storeId: string) => `/dashboard/help-center`,
+    active: false
   },
 ]

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import MergedComponent from "@/components/dashboard/StoreSetupGuide/MergedComponent";
+import DeploymentBackground from "@/components/dashboard/StoreSetupGuide/DeploymentBackground";
 import { Terminal, TypingAnimation, AnimatedSpan } from "@/components/magicui/terminal";
 
 
@@ -80,7 +80,7 @@ export default function TestPage() {
 
   return (
     <div className="min-h-screen">
-      <MergedComponent
+      <DeploymentBackground
         content={
           <div className="w-full max-w-4xl mx-auto">
             <button

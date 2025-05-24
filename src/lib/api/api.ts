@@ -7,7 +7,6 @@ import { Category, CreateCategoryRequest } from "../types/category";
 import { Attribute, CreateAttributeRequest, AttributeValue, AddAttributeValuesRequest } from "../types/attribute";
 import {
   User,
-  UserProfile,
   AuthResponse,
   LoginCredentials,
   SignupData,
@@ -17,6 +16,13 @@ import {
   ChangePasswordResponse,
   RequestPasswordResetResponse
 } from "../types/auth";
+import { StatisticsPeriod, StatisticsSnapshot, RealtimeStatistics, StatisticsApiError } from "../types/statistics";
+import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import { 
+  CreateSubscriptionRequest, 
+  CreateSubscriptionResponse, 
+  SubscriptionApiError 
+} from "../types/subscription";
 // Add this at the start of the file
 const debug = {
   log: (...args: unknown[]) => {
@@ -39,6 +45,7 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true, // Enable sending cookies with requests
 });
 
 // Add an error interface
@@ -75,7 +82,7 @@ const isUserLoggedIn = () => {
   );
 };
 
-// Add request interceptor to include auth token in requests
+// Add request interceptor to include auth token and CSRF token in requests
 api.interceptors.request.use(
   (config) => {
     debug.log("Request:", config.method?.toUpperCase(), config.url);
@@ -83,6 +90,15 @@ api.interceptors.request.use(
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
+    
+    // For POST, PUT, DELETE requests, include CSRF token from cookie
+    if (['post', 'put', 'delete'].includes(config.method?.toLowerCase() || '')) {
+      const csrfToken = getCookie('csrftoken');
+      if (csrfToken) {
+        config.headers['X-CSRFToken'] = csrfToken;
+      }
+    }
+    
     return config;
   },
   (error) => {
@@ -90,6 +106,18 @@ api.interceptors.request.use(
     return Promise.reject(error);
   }
 );
+
+// Helper function to get cookie value
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) {
+    return parts.pop()?.split(';').shift() || null;
+  }
+  return null;
+}
 
 // Update the response interceptor
 api.interceptors.response.use(
@@ -427,7 +455,7 @@ export const authAPI = {
     }
   },
 
-  initializeAuth: async (router: any) => {
+  initializeAuth: async (router: AppRouterInstance) => {
     try {
       const isAuthenticated = await authAPI.checkAuthStatus();
       if (isAuthenticated) {
@@ -508,6 +536,20 @@ export const authAPI = {
   },
 };
 
+// Add this helper function before the storesAPI definition
+const ensurePort8000 = (url: string): string => {
+  try {
+    const urlObj = new URL(url);
+    // If port exists and is not 8000, change it to 8000
+    if (urlObj.port && urlObj.port !== '8000') {
+      urlObj.port = '8000';
+    }
+    return urlObj.toString();
+  } catch (error) {
+    debug.error('Error parsing URL:', error);
+    return url;
+  }
+};
 
 // --- Stores API ---
 export const storesAPI = {
@@ -518,6 +560,11 @@ export const storesAPI = {
       if (!response.data) {
         throw new Error('No data received from API');
       }
+      // Ensure all store URLs use port 8000
+      response.data = response.data.map(store => ({
+        ...store,
+        store_url: store.store_url ? ensurePort8000(store.store_url) : store.store_url
+      }));
       return response.data;
     } catch (error) {
       debug.error('GetStores Error:', error);
@@ -548,13 +595,22 @@ export const storesAPI = {
       throw new Error('Network error while creating store');
     }
   },
-  getCurrentStore: async (): Promise<Store> => {
+  getCurrentStore: async (storeId?: string): Promise<Store> => {
     try {
       const response = await api.get<Store[]>('/stores/');
       debug.log('Current Store Response:', response.data);
       if (!response.data || response.data.length === 0) {
         throw new Error('No store data received');
       }
+      
+      if (storeId) {
+        const store = response.data.find(s => s.id.toString() === storeId);
+        if (!store) {
+          throw new Error('Store not found');
+        }
+        return store;
+      }
+      
       return response.data[0];
     } catch (error) {
       debug.error('GetCurrentStore Error:', error);
@@ -577,22 +633,19 @@ export const productsAPI = {
       throw new Error('Network error while fetching stores');
     }
   },
-  createProduct: async (data: CreateProductRequest): Promise<Product> => {
+  createProduct: async (data: CreateProductRequest, store: Store): Promise<Product> => {
     try {
-      // Get current store
-      const store = await storesAPI.getCurrentStore();
       if (!store?.store_url) {
         throw new Error('Store URL not found');
       }
 
       debug.log('Making product creation request with data:', {
         ...data,
-        media: data.media?.length || 0,
       });
 
       // Create a new axios instance with store URL as base
       const storeApi = axios.create({
-        baseURL: store.store_url,
+        baseURL: ensurePort8000(store.store_url),
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('access_token')}`
@@ -616,9 +669,9 @@ export const productsAPI = {
         if (apiError.errors) {
           const errorDetails: Record<string, string[]> = {};
           Object.entries(apiError.errors).forEach(([field, messages]) => {
-            errorDetails[field] = Array.isArray(messages) ? messages : [messages.toString()];
+            errorDetails[field] = Array.isArray(messages) ? messages : [String(messages)];
           });
-          const errorObj = new Error('Validation failed') as any;
+          const errorObj = new Error('Validation failed') as Error & { details: Record<string, string[]> };
           errorObj.details = errorDetails;
           throw errorObj;
         }
@@ -631,17 +684,15 @@ export const productsAPI = {
       throw new Error('Network error while creating product. Please check your connection.');
     }
   },
-  getProducts: async (): Promise<Product[]> => {
+  getProducts: async (store: Store): Promise<Product[]> => {
     try {
-      // Get current store
-      const store = await storesAPI.getCurrentStore();
       if (!store?.store_url) {
         throw new Error('Store URL not found');
       }
 
       // Create a new axios instance with store URL as base
       const storeApi = axios.create({
-        baseURL: store.store_url,
+        baseURL: ensurePort8000(store.store_url),
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('access_token')}`
@@ -663,17 +714,15 @@ export const productsAPI = {
     alt_text: string;
     is_primary: boolean;
     sort_order: number;
-  }>): Promise<Product> => {
+  }>, store: Store): Promise<Product> => {
     try {
-      // Get current store
-      const store = await storesAPI.getCurrentStore();
       if (!store?.store_url) {
         throw new Error('Store URL not found');
       }
 
       // Create a new axios instance with store URL as base
       const storeApi = axios.create({
-        baseURL: store.store_url,
+        baseURL: ensurePort8000(store.store_url),
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('access_token')}`
@@ -705,17 +754,15 @@ export const productsAPI = {
       attribute_id: number;
       value_id: number;
     }>;
-  }>): Promise<Product> => {
+  }>, store: Store): Promise<Product> => {
     try {
-      // Get current store
-      const store = await storesAPI.getCurrentStore();
       if (!store?.store_url) {
         throw new Error('Store URL not found');
       }
 
       // Create a new axios instance with store URL as base
       const storeApi = axios.create({
-        baseURL: store.store_url,
+        baseURL: ensurePort8000(store.store_url),
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('access_token')}`
@@ -759,14 +806,14 @@ export const categoriesAPI = {
   createCategory: async (data: CreateCategoryRequest): Promise<Category> => {
     try {
       // Get current store
-      const store = await storesAPI.getCurrentStore();
-      if (!store?.store_url) {
+      const currentStore = await storesAPI.getCurrentStore();
+      if (!currentStore?.store_url) {
         throw new Error('Store URL not found');
       }
 
       // Create a new axios instance with store URL as base
       const storeApi = axios.create({
-        baseURL: store.store_url,
+        baseURL: ensurePort8000(currentStore.store_url),
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('access_token')}`
@@ -791,14 +838,14 @@ export const categoriesAPI = {
   getCategories: async (): Promise<Category[]> => {
     try {
       // Get current store
-      const store = await storesAPI.getCurrentStore();
-      if (!store?.store_url) {
+      const currentStore = await storesAPI.getCurrentStore();
+      if (!currentStore?.store_url) {
         throw new Error('Store URL not found');
       }
 
       // Create a new axios instance with store URL as base
       const storeApi = axios.create({
-        baseURL: store.store_url,
+        baseURL: ensurePort8000(currentStore.store_url),
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('access_token')}`
@@ -826,14 +873,14 @@ export const attributesAPI = {
   createAttribute: async (data: CreateAttributeRequest): Promise<Attribute> => {
     try {
       // Get current store
-      const store = await storesAPI.getCurrentStore();
-      if (!store?.store_url) {
+      const currentStore = await storesAPI.getCurrentStore();
+      if (!currentStore?.store_url) {
         throw new Error('Store URL not found');
       }
 
       // Create a new axios instance with store URL as base
       const storeApi = axios.create({
-        baseURL: store.store_url,
+        baseURL: ensurePort8000(currentStore.store_url),
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('access_token')}`
@@ -858,14 +905,14 @@ export const attributesAPI = {
   getAttributes: async (): Promise<Attribute[]> => {
     try {
       // Get current store
-      const store = await storesAPI.getCurrentStore();
-      if (!store?.store_url) {
+      const currentStore = await storesAPI.getCurrentStore();
+      if (!currentStore?.store_url) {
         throw new Error('Store URL not found');
       }
 
       // Create a new axios instance with store URL as base
       const storeApi = axios.create({
-        baseURL: store.store_url,
+        baseURL: ensurePort8000(currentStore.store_url),
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('access_token')}`
@@ -893,14 +940,14 @@ export const attributesAPI = {
   ): Promise<AttributeValue[]> => {
     try {
       // Get current store
-      const store = await storesAPI.getCurrentStore();
-      if (!store?.store_url) {
+      const currentStore = await storesAPI.getCurrentStore();
+      if (!currentStore?.store_url) {
         throw new Error('Store URL not found');
       }
 
       // Create a new axios instance with store URL as base
       const storeApi = axios.create({
-        baseURL: store.store_url,
+        baseURL: ensurePort8000(currentStore.store_url),
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('access_token')}`
@@ -968,6 +1015,129 @@ export const filesAPI = {
         );
       }
       throw new Error('Network error while fetching file content');
+    }
+  },
+
+  updateFileContent: async (subdomain: string, filePath: string, content: string): Promise<FileContentResponse> => {
+    try {
+      const response = await api.post<FileContentResponse>(`/tenants/files/${subdomain}/`, {
+        path: filePath,
+        content: content
+      });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const apiError = error.response?.data as ApiError;
+        throw new Error(
+          apiError?.detail || 
+          apiError?.message || 
+          'Failed to update file content'
+        );
+      }
+      throw new Error('Network error while updating file content');
+    }
+  }
+};
+
+// --- Statistics API ---
+export const statisticsAPI = {
+  getSnapshots: async (storeUrl: string, period?: StatisticsPeriod): Promise<StatisticsSnapshot[]> => {
+    try {
+      if (!storeUrl) {
+        throw new Error('Store URL not found');
+      }
+      const storeApi = axios.create({
+        baseURL: ensurePort8000(storeUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('access_token')}`
+        }
+      });
+      const response = await storeApi.get<StatisticsSnapshot[]>('/api/v1/statistics/snapshots/', {
+        params: period ? { period } : undefined
+      });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const apiError = error.response?.data as StatisticsApiError;
+        throw new Error(
+          apiError?.detail || 
+          apiError?.message || 
+          'Failed to fetch statistics snapshots'
+        );
+      }
+      throw new Error('Network error while fetching statistics snapshots');
+    }
+  },
+
+  getRealtimeStatistics: async (storeUrl: string, period: StatisticsPeriod = 'daily'): Promise<RealtimeStatistics> => {
+    try {
+      if (!storeUrl) {
+        throw new Error('Store URL not found');
+      }
+      const storeApi = axios.create({
+        baseURL: ensurePort8000(storeUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('access_token')}`
+        }
+      });
+      const response = await storeApi.get<RealtimeStatistics>('/api/v1/statistics/realtime/', {
+        params: { period }
+      });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const apiError = error.response?.data as StatisticsApiError;
+        throw new Error(
+          apiError?.detail || 
+          apiError?.message || 
+          'Failed to fetch realtime statistics'
+        );
+      }
+      throw new Error('Network error while fetching realtime statistics');
+    }
+  }
+};
+
+// --- Subscription API ---
+export const subscriptionAPI = {
+  createSubscription: async (data: CreateSubscriptionRequest): Promise<CreateSubscriptionResponse> => {
+    try {
+      debug.log('Creating subscription with data:', data);
+      const response = await api.post<CreateSubscriptionResponse>('/subscription/', data);
+      debug.log('Subscription response:', response.data);
+      return response.data;
+    } catch (error) {
+      debug.error('Subscription creation error:', error);
+      if (axios.isAxiosError(error)) {
+        const responseData = error.response?.data;
+        debug.error('Server error response:', responseData);
+        
+        // Handle different types of error responses
+        if (typeof responseData === 'object' && responseData !== null) {
+          // Handle non-field errors (like "User already has an active subscription")
+          if (responseData.non_field_errors && Array.isArray(responseData.non_field_errors)) {
+            throw new Error(responseData.non_field_errors[0]);
+          }
+
+          const apiError = responseData as SubscriptionApiError;
+          const errorMessage = 
+            apiError?.detail || 
+            apiError?.message || 
+            (apiError?.errors && Object.entries(apiError.errors)
+              .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+              .join('; ')) ||
+            'Failed to create subscription';
+          throw new Error(errorMessage);
+        }
+        
+        // If we have a status code but no detailed message
+        if (error.response?.status) {
+          throw new Error(`Server error (${error.response.status}): ${error.response.statusText}`);
+        }
+      }
+      throw new Error('Network error while creating subscription');
     }
   }
 };
