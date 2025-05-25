@@ -250,19 +250,15 @@ function sanitizeCodeBlock(code: string): string {
       const cleanedContent = sanitizeCodeBlock(content);
 
 // Update file content on server
-const response = await filesAPI.updateFileContent(tenantName, path, cleanedContent)
-      console.log('Update response:', response)
-      // if (!response || !response.content) {
-      //   throw new Error('Failed to update file content')
-      // }
+const response = await filesAPI.updateFileContent(tenantName, path, cleanedContent);
+console.log('Update response:', response);
 
-      // Update original content after successful save
-      setOriginalContent((prev) => ({ ...prev, [path]: response.content }))
-      setModifiedFiles((prev) => {
-        const newSet = new Set(prev)
-        newSet.delete(path)
-        return newSet
-      })
+if (!response || response.detail !== 'File saved successfully') {
+  throw new Error('Failed to update file content');
+}
+
+// ✅ Update original using cleanedContent, not response.content
+setOriginalContent((prev) => ({ ...prev, [path]: cleanedContent }));
 
       return cleanedContent;
     } catch (error: unknown) {
