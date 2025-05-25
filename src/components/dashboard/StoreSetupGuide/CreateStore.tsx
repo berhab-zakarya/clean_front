@@ -9,7 +9,7 @@ import { useStore } from "@/hooks/useStore"
 import { toast } from "react-hot-toast"
 import { Terminal, TypingAnimation, AnimatedSpan } from "@/components/magicui/terminal"
 import { Store, Sparkles, Rocket, Globe, ExternalLink, CheckCircle, Clock, Zap } from "lucide-react"
-import debounce from 'lodash/debounce'
+
 
 // Lazy load the MergedComponent
 const DeploymentBackground = dynamic(() => import("@/components/dashboard/StoreSetupGuide/DeploymentBackground"), {
@@ -177,8 +177,14 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
           // Handle plain text messages
         }
 
-        // Check for successful deployment
-        if (msg.includes("Next.js server is running") || status === "success" || msg.includes("deployed successfully")) {
+        // Check for successful deployment - updated conditions
+        if (msg.includes("Pure store deployment successful") || 
+            msg.includes("deployment successful") ||
+            msg.includes("Store deployed successfully") ||
+            status === "success" || 
+            status === "deployed" ||
+            msg.includes("deployed successfully")) {
+
           clearTimeout(deploymentTimeout)
           setDeploymentComplete(true)
           
@@ -187,6 +193,11 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
             text: "🎉 Store deployed successfully!",
             className: "text-emerald-400 font-bold text-lg",
           }])
+          
+          // Generate store URL if not provided
+          if (!url && formData.subdomain) {
+            url = `https://${formData.subdomain}.algecom.com`
+          }
           
           if (url) {
             // Validate and clean URL
@@ -203,33 +214,67 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
             }])
           }
           
-          // Keep the deployment view visible for at least 5 seconds before redirecting
+          // Keep the deployment view visible for at least 10 seconds before redirecting
           setTimeout(() => {
             ws.close()
             router.push("/dashboard/StoreSetupGuide")
             onComplete()
-          }, 5000)
+          }, 10000)
           
-        } else if (status === "failed" || msg.toLowerCase().includes("error") || msg.toLowerCase().includes("failed")) {
+        } else if (status === "failed" || 
+                   msg.toLowerCase().includes("deployment failed") ||
+                   msg.toLowerCase().includes("error") || 
+                   msg.toLowerCase().includes("failed")) {
           clearTimeout(deploymentTimeout)
           setTerminalLines(prev => [...prev, {
             type: "span" as const,
             text: `❌ Deployment failed: ${msg}`,
             className: "text-red-400 font-semibold",
           }])
-          ws.close()
-          setIsDeploying(false)
+          // Add delay before closing on failure
+          setTimeout(() => {
+            ws.close()
+            setIsDeploying(false)
+          }, 5000)
           toast.error("Deployment failed. Please try again.")
         } else if (msg.trim()) {
+          // Show deployment progress messages
+          let displayMsg = msg
+          let className = "text-cyan-300 text-sm"
+          
+          // Enhanced message customization based on content
+          if (msg.includes("Creating store directory")) {
+            displayMsg = "📁 Setting up store structure..."
+            className = "text-blue-400 text-sm"
+          } else if (msg.includes("Looking for template")) {
+            displayMsg = "🔍 Loading store template..."
+            className = "text-purple-400 text-sm"
+          } else if (msg.includes("Copying static file") || msg.includes("Created processed file")) {
+            displayMsg = "📋 Installing store assets..."
+            className = "text-indigo-400 text-sm"
+          } else if (msg.includes("deployment_status")) {
+            displayMsg = "⚙️ Finalizing deployment..."
+            className = "text-yellow-400 text-sm"
+          } else if (msg.includes("Installing dependencies")) {
+            displayMsg = "📦 Installing dependencies..."
+            className = "text-green-400 text-sm"
+          } else if (msg.includes("Building application")) {
+            displayMsg = "🔨 Building application..."
+            className = "text-orange-400 text-sm"
+          } else if (msg.includes("Starting server")) {
+            displayMsg = "🚀 Starting server..."
+            className = "text-pink-400 text-sm"
+          }
+          
           setTerminalLines(prev => [...prev, {
             type: "span" as const,
-            text: `📋 ${msg}`,
-            className: "text-cyan-300 text-sm",
+            text: displayMsg,
+            className: className,
           }])
         }
 
-        // Auto-scroll terminal
-        setTimeout(handleScroll, 100)
+        // Auto-scroll terminal with a small delay to ensure content is rendered
+        setTimeout(handleScroll, 150)
       }
 
       ws.onerror = (error) => {
@@ -320,6 +365,7 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
         ])
         
         if (response.id) {
+          setStoreUrl(response.store_url);
           // Add a small delay before starting WebSocket connection
           setTimeout(() => {
             handleWebSocket(response.id)

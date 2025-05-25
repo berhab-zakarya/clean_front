@@ -172,10 +172,7 @@ export default function EcommerceSetupGuide() {
                   </div>
                 </div>
                 <div className="flex gap-4 items-center">
-                  <SimpleButton
-                    title="Select a plan"
-                    className="bg-white text-[#1E3A8A] px-8 py-4 rounded-2xl font-bold hover:bg-blue-50 transform hover:scale-105 transition-all shadow-lg hover:shadow-xl"
-                  />
+                 
                   <button 
                     onClick={() => setShowBanner(false)}
                     className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center backdrop-blur-sm transition-all"

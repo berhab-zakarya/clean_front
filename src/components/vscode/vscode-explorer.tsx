@@ -25,6 +25,13 @@ export function VSCodeExplorer({ tenantName }: VSCodeExplorerProps) {
 
   const { files, loading, error, fileContent, fetchFileContent, updateFileContent } = useFilesystem(tenantName)
 
+  const onSave = async ( updatedFileContent ) => {
+    if (activeFilePath) { 
+      await updateFileContent(activeFilePath, updatedFileContent)
+      console.log("File saved:", activeFilePath)
+    }
+  }
+ 
   const handleFileSelect = async (id: string, path: string) => {
     setActiveFileId(id)
     setActiveFilePath(path)
@@ -48,6 +55,7 @@ export function VSCodeExplorer({ tenantName }: VSCodeExplorerProps) {
         return "w-full"
     }
   }
+
 
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 text-gray-100 font-mono relative overflow-hidden">
@@ -158,8 +166,7 @@ export function VSCodeExplorer({ tenantName }: VSCodeExplorerProps) {
                     if (activeFilePath) {
                       updateFileContent(activeFilePath, content)
                     }
-                  }}
-                />
+                  } }                />
               </ErrorBoundary>
             </TabsContent>
             
@@ -216,4 +223,3 @@ export function VSCodeExplorer({ tenantName }: VSCodeExplorerProps) {
     </div>
   )
 }
-

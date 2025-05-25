@@ -64,15 +64,14 @@ export default function ThreeColumnTestimonials({ data }: TestimonialProps) {
 
       {/* Second column - top to bottom */}
       <div className="h-[600px] overflow-hidden transform scale-y-[-1]">
-  <Marquee vertical className="[--duration:15s]" pauseOnHover applyMask={true}>
-    {column2Loop.map((testimonial, index) => (
-      <div className="transform scale-y-[-1]">
-        <TestimonialCard key={`col2-${testimonial.name}-${index}`} testimonial={testimonial} />
+        <Marquee vertical className="[--duration:15s]" pauseOnHover applyMask={true}>
+          {column2Loop.map((testimonial, index) => (
+            <div key={`col2-wrapper-${testimonial.name}-${index}`} className="transform scale-y-[-1]">
+              <TestimonialCard key={`col2-${testimonial.name}-${index}`} testimonial={testimonial} />
+            </div>
+          ))}
+        </Marquee>
       </div>
-    ))}
-  </Marquee>
-</div>
-
 
       {/* Third column - bottom to top */}
       <div className="h-[600px] overflow-hidden">

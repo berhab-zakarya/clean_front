@@ -10,15 +10,15 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Upload, X, Moon, Sun, CheckCircle2, AlertCircle } from "lucide-react"
+import { Upload,  CheckCircle2, AlertCircle } from "lucide-react"
 import { toast } from "react-toastify";
 import { Alert } from "@/components/common/feedback/Alert";
 
-
+s
 export default function PersonalAccount() {
   const { userData, loading, error: userError, isUpdating, updateProfile } = useUser();
   const { userStore, loading: storeLoading } = useStore();

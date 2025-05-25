@@ -17,6 +17,7 @@ import type { Product } from "@/lib/types/product";
 import Image from "next/image";
 import { folder, users } from "@/lib/icons";
 import { Checkbox } from "@/components/common/Checkbox";
+import Button from "@/components/common/Button";
 
 export default function ProductsPage() {
   const { currentStoreId } = useStorePath();
@@ -107,13 +108,15 @@ export default function ProductsPage() {
     <div className="flex flex-col w-full bg-gray-100 min-h-screen">
       <div className="flex items-center justify-between px-[24px]  mb-4">
         <h1 className="text-[36px] text-black font-bold ">Stocks</h1>
-        <Link
-          href={`/dashboard/${currentStoreId}/product/productAdd`}
-          className="inline-flex h-[40px] w-[185px] items-center justify-center px-4 py-2 bg-[#1E3A8A] text-white rounded-full text-sm font-medium hover:bg-[#1E3A8A] transition-colors"
+        <Button
+          onClick={() =>
+            (window.location.href = `/dashboard/${currentStoreId}/product/productAdd`)
+          }
+          className="inline-flex items-center h-[45px] justify-center cursor-pointer"
         >
           <Plus className="h-4 w-4 mr-2" />
           Add Product
-        </Link>
+        </Button>
       </div>
 
       <div className="flex gap-6 px-[24px]  py-4">
@@ -157,9 +160,19 @@ export default function ProductsPage() {
               <div>
                 <div className="text-lg font-semibold">Active</div>
                 <div className="text-[20px] font-bold p-2 ">
-                  {products.filter(product => product.status === "published").length}
+                  {
+                    products.filter((product) => product.status === "published")
+                      .length
+                  }
                   <span className="ml-2 text-[10px] text-gray-500">
-                    %{Math.round((products.filter(product => product.status === "published").length / products.length) * 100)}
+                    %
+                    {Math.round(
+                      (products.filter(
+                        (product) => product.status === "published"
+                      ).length /
+                        products.length) *
+                        100
+                    )}
                   </span>
                 </div>
               </div>
@@ -171,7 +184,7 @@ export default function ProductsPage() {
         <div className="flex-1 bg-white text-gray-900 rounded-lg p-6 flex flex-col justify-between border border-gray-200">
           <div className="flex items-center justify-between">
             <div className="bg-[#1E3A8A] p-3 rounded-lg">
-            <Image src={users} alt="Folder" width={25} height={25} />
+              <Image src={users} alt="Folder" width={25} height={25} />
             </div>
             <div className="text-sm text-gray-600 flex items-center gap-1 relative">
               <button
@@ -265,11 +278,11 @@ export default function ProductsPage() {
                   <Checkbox
                     checked={selectedProducts.length === sortedProducts.length}
                     onCheckedChange={handleSelectAll}
-                    color="primary" 
+                    color="primary"
                     className="rounded-none"
                   />
                 </th>
-                <th 
+                <th
                   className="px-6 py-4 text-left text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50"
                   onClick={() => handleSort("name")}
                 >
@@ -284,7 +297,7 @@ export default function ProductsPage() {
                     <ArrowUpDown className="h-4 w-4 text-gray-400" />
                   </div>
                 </th>
-                <th 
+                <th
                   className="px-6 py-4 text-left text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50"
                   onClick={() => handleSort("price")}
                 >
@@ -293,7 +306,7 @@ export default function ProductsPage() {
                     <ArrowUpDown className="h-4 w-4 text-gray-400" />
                   </div>
                 </th>
-                <th 
+                <th
                   className="px-6 py-4 text-left text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50"
                   onClick={() => handleSort("stock")}
                 >
@@ -334,7 +347,9 @@ export default function ProductsPage() {
                   <td className="px-6 py-4">
                     <Checkbox
                       checked={selectedProducts.includes(product.id.toString())}
-                      onCheckedChange={() => handleSelectProduct(product.id.toString())}
+                      onCheckedChange={() =>
+                        handleSelectProduct(product.id.toString())
+                      }
                       color="primary"
                       className="rounded-[8px] w-[24px] h-[24px] stroke-black"
                     />
@@ -405,7 +420,9 @@ export default function ProductsPage() {
                           : "bg-orange-100 text-orange-800"
                       }`}
                     >
-                      {product.status === "published" ? "Published" : "Unpublished"}
+                      {product.status === "published"
+                        ? "Published"
+                        : "Unpublished"}
                     </span>
                   </td>
                 </tr>

@@ -511,10 +511,92 @@ export function VSCodeEditor({
     setShowTopbar(false);
   };
 
-  const handleAIInputSubmit = (value: string) => {
-    // Handle AI input submission here
-    console.log("AI Input:", value);
-  };
+  const handleAIInputSubmit = async (value: string) => {
+  if (!activeFilePath || !localContent) {
+    console.log("No file selected or content available");
+    return;
+  }
+
+  try {
+    // Show loading state (you might want to add a loading state to your component)
+    console.log("Processing AI request...");
+
+    // Prepare the prompt with file content
+    const prompt = `You are a senior frontend developer with deep experience in React and modern UI/UX best practices.
+
+User request: ${value}
+
+Improve the following code based on the user's request. Keep the core logic and content the same, but enhance:
+- Visual structure and responsiveness (if needed).
+- Readability and clean code practices.
+- Accessibility (if applicable).
+- Styling improvements, if relevant.
+
+**Important**: Return only valid, formatted TypeScript React component code. Do NOT change the component name or core logic unless specifically requested. Do NOT wrap in Markdown or add comments. Output the enhanced code only.
+
+Here is the current code:
+
+\`\`\`tsx
+${localContent}
+\`\`\``;
+
+    // Prepare request body for Gemini API
+    const requestBody = {
+      contents: [
+        {
+          parts: [
+            {
+              text: prompt
+            }
+          ]
+        }
+      ]
+    };
+
+    // Make API call to Gemini
+    const response = await fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyCixCiZ8HRRIIbTdIyHnMmsA00AVE1xN4c',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    // Extract the generated content
+    if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+      const enhancedCode = data.candidates[0].content.parts[0].text;
+      
+      // Update the file content with the enhanced code
+      setLocalContent(enhancedCode);
+      onContentChange(enhancedCode);
+      
+      console.log("Code enhanced successfully!");
+      
+      // Close the AI input after successful enhancement
+      setShowInput(false);
+      setShowTopbar(true);
+      
+    } else {
+      throw new Error('Invalid response format from API');
+    }
+
+  } catch (error) {
+    console.error('Error enhancing code:', error);
+    
+    // You might want to show an error message to the user
+    // For example, you could add an error state to your component
+    alert(`Failed to enhance code: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+};
 
   return (
     <div

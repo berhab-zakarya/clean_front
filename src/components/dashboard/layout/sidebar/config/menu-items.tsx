@@ -41,8 +41,8 @@ export const mainMenuItems = [
   },
   {
     icon: iconComponent(insight),
-    text: "Insight",
-    href: (storeId: string) => `/dashboard/${storeId}/insights`,
+    text: "Store Seetings",
+    href: (storeId: string) => `/dashboard/${storeId}/store-settings`,
     active: false
   },
   {
@@ -57,12 +57,7 @@ export const mainMenuItems = [
     href: (storeId: string) => `/dashboard/${storeId}/product`,
     active: false
   },
-  {
-    icon: iconComponent(inbox),
-    text: "Inbox",
-    href: (storeId: string) => `/dashboard/${storeId}/inbox`,
-    active: false
-  },
+
 ]
 
 export const preferencesItems = [

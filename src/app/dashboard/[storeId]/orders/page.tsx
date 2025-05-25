@@ -3,24 +3,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { useEffect, useState } from "react"
 import Image from 'next/image'
-
-// Define types for our data
-type OrderStatus = "Delivered" | "Pending" | "Rejected"
-
-interface Order {
-  id: string
-  customerName: string
-  email?: string
-  phone: string
-  address: {
-    street: string
-    city: string
-    country: string
-  }
-  date: string
-  total: string
-  status: OrderStatus
-}
+import { useOrders } from "@/hooks/useOrders"
 
 interface Statistics {
   allOrders: number
@@ -48,21 +31,21 @@ interface SortConfig {
 }
 
 export default function Orders() {
-  // State for statistics and orders
+  const { orders, loading, error } = useOrders();
+
+  // State for statistics
   const [stats, setStats] = useState<Statistics | null>(null)
-  const [orders, setOrders] = useState<Order[]>([])
-  const [loading, setLoading] = useState(true)
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
   const itemsPerPage = 20
+  const totalPages = Math.ceil(orders.length / itemsPerPage)
 
   // Sorting state
   const [sortConfigs, setSortConfigs] = useState<SortConfig[]>([]);
 
   // Filter states
-  const [filters, setFilters] = useState({
+  const [filters] = useState({
     customerName: "",
     email: "",
     phone: "",
@@ -83,11 +66,11 @@ export default function Orders() {
         // Simulating API response
         setTimeout(() => {
           setStats({
-            allOrders: 450,
-            pending: 5,
-            completed: 320,
+            allOrders: orders.length,
+            pending: orders.filter(o => o.status === 'pending').length,
+            completed: orders.filter(o => o.status === 'delivered').length,
             canceled: {
-              count: 30,
+              count: orders.filter(o => o.status === 'cancelled').length,
               change: -20,
             },
             returned: 20,
@@ -96,70 +79,28 @@ export default function Orders() {
               percentage: 20,
               change: 0,
             },
-            customers: 30,
+            customers: new Set(orders.map(o => o.customer.id)).size,
           })
-          setLoading(false)
         }, 500)
       } catch (error) {
         console.error("Error fetching statistics:", error)
-        setLoading(false)
       }
     }
 
-    fetchStats()
-  }, [])
-
-  // Fetch orders from API
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        // In a real app, this would be an API call
-        // const response = await fetch(`/api/orders?page=${currentPage}&limit=${itemsPerPage}`)
-        // const data = await response.json()
-
-        // Simulating API response
-        setTimeout(() => {
-          // Generate 42 orders for pagination testing
-          const generatedOrders: Order[] = Array.from({ length: 42 }, (_, i) => ({
-            id: `order-${i + 1}`,
-            customerName: "Cocorella Out",
-            email: i % 3 === 0 ? undefined : "Hello@mail.com", // Some orders don't have email
-            phone: "0770 00 00 00",
-            address: {
-              street: "Les dahlias",
-              city: "Tlemcen",
-              country: "Algérie",
-            },
-            date: "12.09.2019 - 12.53 PM",
-            total: "34,295 DZD",
-            status: i % 3 === 0 ? "Delivered" : i % 3 === 1 ? "Pending" : "Rejected",
-          }))
-
-          setOrders(generatedOrders)
-          setTotalPages(Math.ceil(generatedOrders.length / itemsPerPage))
-          setLoading(false)
-        }, 500)
-      } catch (error) {
-        console.error("Error fetching orders:", error)
-        setLoading(false)
-      }
+    if (orders.length > 0) {
+      fetchStats()
     }
-
-    fetchOrders()
-  }, [currentPage])
+  }, [orders])
 
   // Apply filters to orders
   const filteredOrders = orders.filter((order) => {
     return (
-      (filters.customerName === "" || order.customerName.toLowerCase().includes(filters.customerName.toLowerCase())) &&
-      (filters.email === "" || (order.email && order.email.toLowerCase().includes(filters.email.toLowerCase()))) &&
-      (filters.phone === "" || order.phone.includes(filters.phone)) &&
-      (filters.address === "" ||
-        `${order.address.street} ${order.address.city} ${order.address.country}`
-          .toLowerCase()
-          .includes(filters.address.toLowerCase())) &&
-      (filters.date === "" || order.date.includes(filters.date)) &&
-      (filters.total === "" || order.total.includes(filters.total)) &&
+      (filters.customerName === "" || order.customer_name.toLowerCase().includes(filters.customerName.toLowerCase())) &&
+      (filters.email === "" || order.customer_email.toLowerCase().includes(filters.email.toLowerCase())) &&
+      (filters.phone === "" || order.customer_phone.includes(filters.phone)) &&
+      (filters.address === "" || order.address.toLowerCase().includes(filters.address.toLowerCase())) &&
+      (filters.date === "" || order.created_at.includes(filters.date)) &&
+      (filters.total === "" || order.total_amount.includes(filters.total)) &&
       (filters.status === "" || order.status === filters.status)
     )
   })
@@ -167,11 +108,9 @@ export default function Orders() {
   // Handle sorting
   const handleSort = (key: SortKey) => {
     setSortConfigs((prevConfigs) => {
-      // Check if the key is already in the sortConfigs
       const existingIndex = prevConfigs.findIndex(config => config.key === key);
       
       if (existingIndex !== -1) {
-        // If key exists, toggle direction
         const newConfigs = [...prevConfigs];
         newConfigs[existingIndex] = {
           key,
@@ -179,7 +118,6 @@ export default function Orders() {
         };
         return newConfigs;
       } else {
-        // If key doesn't exist, add it with 'desc' direction
         return [...prevConfigs, { key, direction: 'desc' }];
       }
     });
@@ -193,65 +131,43 @@ export default function Orders() {
 
   // Sort the filtered orders
   const sortedOrders = [...filteredOrders].sort((a, b) => {
-    // Apply each sort configuration in order
     for (const config of sortConfigs) {
       let comparison = 0;
       
       switch (config.key) {
         case 'customerName':
-          comparison = a.customerName.localeCompare(b.customerName);
+          comparison = a.customer_name.localeCompare(b.customer_name);
           break;
         case 'email':
-          // Handle undefined emails
-          if (a.email === undefined && b.email === undefined) comparison = 0;
-          else if (a.email === undefined) comparison = 1;
-          else if (b.email === undefined) comparison = -1;
-          else comparison = a.email.localeCompare(b.email);
+          comparison = a.customer_email.localeCompare(b.customer_email);
           break;
         case 'phone':
-          comparison = a.phone.localeCompare(b.phone);
+          comparison = a.customer_phone.localeCompare(b.customer_phone);
           break;
         case 'address':
-          const addressA = `${a.address.street} ${a.address.city} ${a.address.country}`;
-          const addressB = `${b.address.street} ${b.address.city} ${b.address.country}`;
-          comparison = addressA.localeCompare(addressB);
+          comparison = a.address.localeCompare(b.address);
           break;
         case 'date':
-          comparison = a.date.localeCompare(b.date);
+          comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
           break;
         case 'total':
-          // Extract numeric value from total for proper numeric sorting
-          const numA = parseFloat(a.total.replace(/[^0-9.]/g, ''));
-          const numB = parseFloat(b.total.replace(/[^0-9.]/g, ''));
-          comparison = numA - numB;
+          comparison = parseFloat(a.total_amount) - parseFloat(b.total_amount);
           break;
         case 'status':
           comparison = a.status.localeCompare(b.status);
           break;
       }
 
-      // If items are different according to this sort key
       if (comparison !== 0) {
-        // Apply sort direction
         return config.direction === 'desc' ? -comparison : comparison;
       }
     }
     
-    // If all sort keys are equal, maintain original order
     return 0;
   });
 
   // Get current page orders
   const currentOrders = sortedOrders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-  // Handle filter change
-  const handleFilterChange = (field: keyof typeof filters, value: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-    setCurrentPage(1); // Reset to first page when filtering
-  };
 
   // Handle pagination
   const goToNextPage = () => {
@@ -264,6 +180,16 @@ export default function Orders() {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1)
     }
+  }
+
+  if (error) {
+    return (
+      <div className="flex-1 overflow-auto p-6">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          {error}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -490,7 +416,7 @@ export default function Orders() {
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-[#828282] uppercase tracking-wider">
                   <div className="flex items-center cursor-pointer" onClick={() => handleSort('address')}>
-                    <span>Odre delivery</span>
+                    <span>Order delivery</span>
                     <button>
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -638,45 +564,41 @@ export default function Orders() {
                       </td>
                     </tr>
                   ))
-                : currentOrders.map((order, index) => (
+                : currentOrders.map((order) => (
                     <tr key={order.id}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#1a202c]">
-                        {order.customerName}
+                        {order.customer_name}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {order.email ? (
-                          <a href={`mailto:${order.email}`} className="text-[#1e3a8a] hover:underline">
-                            {order.email}
-                          </a>
-                        ) : (
-                          <span className="text-gray-400 italic">No email</span>
-                        )}
+                        <a href={`mailto:${order.customer_email}`} className="text-[#1e3a8a] hover:underline">
+                          {order.customer_email}
+                        </a>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-[#1a202c]">{order.phone}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-[#1a202c]">{order.customer_phone}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-[#1a202c]">
                         <div>
-                          <p>{order.address.street},</p>
-                          <p>
-                            {order.address.city}, {order.address.country}
-                          </p>
+                          <p>{order.address}</p>
+                          <p>{order.wilaya}</p>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-[#1a202c]">{order.date}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-[#1a202c]">{order.total}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-[#1a202c]">
+                        {new Date(order.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-[#1a202c]">{order.total_amount} DZD</td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {order.status === "Delivered" ? (
-                          <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-[#77c902] text-white">
-                            Delivered
-                          </span>
-                        ) : order.status === "Pending" ? (
-                          <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-[#fa8f45] text-white">
-                            Pending
-                          </span>
-                        ) : (
-                          <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-[#ff4423] text-white">
-                            Rejected
-                          </span>
-                        )}
+                        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          order.status === "delivered" 
+                            ? "bg-[#77c902] text-white"
+                            : order.status === "pending"
+                            ? "bg-[#fa8f45] text-white"
+                            : order.status === "processing"
+                            ? "bg-[#1e3a8a] text-white"
+                            : order.status === "shipped"
+                            ? "bg-[#1e3a8a] text-white"
+                            : "bg-[#ff4423] text-white"
+                        }`}>
+                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                        </span>
                       </td>
                     </tr>
                   ))}

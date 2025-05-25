@@ -18,6 +18,7 @@ export interface CreateProductRequest {
   category: number;
   status: 'published' | 'draft' | 'archived';
   has_variants: boolean;
+  faqs: FAQ[];
 }
 
 export interface Product {
@@ -26,19 +27,24 @@ export interface Product {
   slug: string;
   description: string;
   price: string;
-  promotional_price: string | null;
+  promotional_price: string;
   currency: string;
   stock_quantity: number;
   sku: string;
   is_featured: boolean;
-  category: number;
-  status: 'published' | 'draft' | 'archived';
+  average_rating: string;
   has_variants: boolean;
+  category_name: string;
+  images: ProductImage[];
+  videos: ProductVideo[];
+  variants: ProductVariant[];
+  details: ProductDetail[];
+  faqs: ProductFAQ[];
+  reviews: string;
   is_sale: boolean;
   current_price: string;
-  average_rating: string;
-  category_name: string;
-  primary_image: string | null;
+  attributes: string;
+  status: 'published' | 'draft' | 'archived';
 }
 
 export interface ProductApiError {
@@ -53,18 +59,60 @@ export interface ProductError {
 }
 
 export interface ProductImage {
-  image_url: string;
+  id: number;
+  image: string;
   alt_text: string;
   is_primary: boolean;
-  sort_order: number;
+}
+export interface addProductImage {
+  image: string;
+  alt_text: string;
+  is_primary: boolean;
+}
+
+
+export interface ProductVideo {
+  id: number;
+  video_url: string;
+  thumbnail_url: string;
+  title: string;
+}
+
+export interface AttributeValue {
+  id: number;
+  attribute_name: string;
+  value: string;
+  color_code: string;
+  image_url: string;
+}
+
+export interface ProductAttributeValue {
+  attribute_name: string;
+  value_data: AttributeValue;
 }
 
 export interface ProductVariant {
+  id: number;
   sku: string;
   price_adjustment: string;
   stock_quantity: number;
-  attributes: Array<{
-    attribute_id: number;
-    value_id: number;
-  }>;
+  attribute_values: ProductAttributeValue[];
+  final_price: string;
+}
+
+export interface ProductDetail {
+  id: number;
+  key: string;
+  value: string;
+}
+
+export interface ProductFAQ {
+  id: number;
+  question: string;
+  answer: string;
+}
+
+export interface FAQ {
+  question: string;
+  answer: string;
 }

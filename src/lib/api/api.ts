@@ -23,6 +23,7 @@ import {
   CreateSubscriptionResponse, 
   SubscriptionApiError 
 } from "../types/subscription";
+import { Order, OrderApiError } from "../types/order";
 // Add this at the start of the file
 const debug = {
   log: (...args: unknown[]) => {
@@ -710,10 +711,9 @@ export const productsAPI = {
     }
   },
   addProductImages: async (productId: number, images: Array<{
-    image_url: string;
+    image: string;
     alt_text: string;
     is_primary: boolean;
-    sort_order: number;
   }>, store: Store): Promise<Product> => {
     try {
       if (!store?.store_url) {
@@ -1026,6 +1026,7 @@ export const filesAPI = {
       });
       return response.data;
     } catch (error) {
+      console.error('UpdateFileContent Error:', error);
       if (axios.isAxiosError(error)) {
         const apiError = error.response?.data as ApiError;
         throw new Error(
@@ -1138,6 +1139,39 @@ export const subscriptionAPI = {
         }
       }
       throw new Error('Network error while creating subscription');
+    }
+  }
+};
+
+// --- Orders API ---
+export const ordersAPI = {
+  getOrders: async (store: Store): Promise<Order[]> => {
+    try {
+      if (!store?.store_url) {
+        throw new Error('Store URL not found');
+      }
+
+      // Create a new axios instance with store URL as base
+      const storeApi = axios.create({
+        baseURL: ensurePort8000(store.store_url),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('access_token')}`
+        }
+      });
+
+      const response = await storeApi.get<Order[]>('/api/v1/orders/');
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const apiError = error.response?.data as OrderApiError;
+        throw new Error(
+          apiError?.detail || 
+          apiError?.message || 
+          'Failed to fetch orders'
+        );
+      }
+      throw new Error('Network error while fetching orders');
     }
   }
 };

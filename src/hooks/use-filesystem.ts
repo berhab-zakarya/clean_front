@@ -210,7 +210,13 @@ export function useFilesystem(tenantName: string) {
     },
     [fileCache, tenantName]
   )
-
+function sanitizeCodeBlock(code: string): string {
+  return code
+    .trim()
+    .replace(/^```tsx?\s*/i, '') // Remove starting ```tsx or ```ts
+    .replace(/```$/, '')         // Remove trailing ```
+    .trim();
+}
   // Update file content (in cache and eventually on server)
   const updateFileContent = useCallback(async (path: string, content: string) => {
     if (!tenantName) {
@@ -239,11 +245,16 @@ export function useFilesystem(tenantName: string) {
       }
 
       // Update file content on server
-      const response = await filesAPI.updateFileContent(tenantName, path, content)
-      
-      if (!response || !response.content) {
-        throw new Error('Failed to update file content')
-      }
+      // const response = await filesAPI.updateFileContent(tenantName, path, content)
+
+      const cleanedContent = sanitizeCodeBlock(content);
+
+// Update file content on server
+const response = await filesAPI.updateFileContent(tenantName, path, cleanedContent)
+      console.log('Update response:', response)
+      // if (!response || !response.content) {
+      //   throw new Error('Failed to update file content')
+      // }
 
       // Update original content after successful save
       setOriginalContent((prev) => ({ ...prev, [path]: response.content }))
@@ -253,7 +264,7 @@ export function useFilesystem(tenantName: string) {
         return newSet
       })
 
-      return response.content
+      return cleanedContent;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update file content'
       setError(errorMessage)

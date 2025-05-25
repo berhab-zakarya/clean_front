@@ -224,21 +224,53 @@ export function DashboardHeader() {
               >
                 <Link
                   href="/dashboard/StoreSetupGuide"
-                  className="flex items-center w-full relative overflow-hidden"
+                  className="group flex items-center w-full relative overflow-hidden p-4 rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-1"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-green-500/5 to-emerald-500/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <div className="relative">
-                    <Store className="h-5 w-5 text-green-600 transition-all duration-300 group-hover:scale-110 group-hover:rotate-12" />
-                    <div className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full opacity-0 group-hover:opacity-100 animate-ping"></div>
-                  </div>
-                  <span className="text-sm font-medium text-green-700 group-hover:text-green-800 transition-colors duration-200 relative z-10">
-                    Create New Store
-                  </span>
-                  <div className="ml-auto opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
-                    <div className="w-5 h-5 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">+</span>
+                  {/* Animated Background Gradients */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-purple-500/5 to-orange-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700 rounded-2xl"></div>
+
+                  {/* Animated Border Effect */}
+                  <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-500 via-purple-500 to-orange-500 p-0.5">
+                      <div className="w-full h-full bg-white rounded-2xl"></div>
                     </div>
                   </div>
+
+                  {/* Icon Container with Enhanced Effects */}
+                  <div className="relative z-10">
+                    {/* Pulsing Background Circle */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl opacity-10 group-hover:opacity-20 transition-opacity duration-300 animate-pulse"></div>
+
+                    {/* Icon Background */}
+                    <div className="relative w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center group-hover:from-blue-500 group-hover:to-purple-600 transition-all duration-500 group-hover:rotate-12 group-hover:scale-110">
+                      <Store className="h-6 w-6 text-white transition-all duration-300 group-hover:scale-110" />
+
+                      {/* Sparkle Effects */}
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-orange-400 to-orange-500 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 animate-ping"></div>
+                      <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-500 delay-150 animate-ping"></div>
+                    </div>
+                  </div>
+
+                  {/* Enhanced Text */}
+                  <span className="text-lg font-bold bg-gradient-to-r from-blue-700 via-purple-600 to-blue-800 bg-clip-text text-transparent group-hover:from-blue-600 group-hover:via-purple-500 group-hover:to-orange-600 transition-all duration-500 relative z-10 ml-4 flex-1">
+                    Create New Store
+                  </span>
+
+                  {/* Enhanced Action Button */}
+                  <div className="ml-auto relative z-10">
+                    {/* Button Background Glow */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-orange-400 to-orange-500 rounded-full blur-lg opacity-0 group-hover:opacity-30 transition-opacity duration-500"></div>
+
+                    {/* Main Button */}
+                    <div className="relative w-10 h-10 bg-gradient-to-r from-orange-500 to-orange-600 rounded-full flex items-center justify-center transform translate-x-2 group-hover:translate-x-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-180">
+                      <span className="text-white text-lg font-bold transition-transform duration-300 group-hover:rotate-180">
+                        +
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Bottom Accent Line */}
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-orange-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left rounded-b-2xl"></div>
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -258,73 +290,6 @@ export function DashboardHeader() {
 
         <div className="flex items-center gap-4 ml-4">
           {/* Notifications Dropdown */}
-          <DropdownMenu
-            open={notificationsOpen}
-            onOpenChange={setNotificationsOpen}
-          >
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative h-9 w-9 rounded-full"
-              >
-                <Image
-                  src="/assets/icons/sidebar/Notif.svg"
-                  alt="Notification"
-                  width={40}
-                  height={40}
-                  className="opacity-75 group-hover:opacity-100 transition-opacity "
-                />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80">
-              <div className="flex items-center justify-between px-4 py-3">
-                <DropdownMenuLabel className="font-semibold text-base p-0">
-                  Notifications {unreadCount > 0 && `(${unreadCount})`}
-                </DropdownMenuLabel>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 text-xs text-[#1e3a8a]"
-                >
-                  Mark all as read
-                </Button>
-              </div>
-              <DropdownMenuSeparator />
-              <div className="max-h-[300px] overflow-y-auto">
-                {notifications.map((notification) => (
-                  <div
-                    key={notification.id}
-                    className="px-4 py-2 hover:bg-[#f3f5f7]"
-                  >
-                    <div className="flex gap-2">
-                      <div
-                        className={cn(
-                          "mt-1 h-2 w-2 rounded-full shrink-0",
-                          notification.read ? "bg-transparent" : "bg-[#fa8f45]"
-                        )}
-                      />
-                      <div>
-                        <div className="font-medium text-sm">
-                          {notification.title}
-                        </div>
-                        <div className="text-xs text-[#828282] mt-1">
-                          {notification.description}
-                        </div>
-                        <div className="text-xs text-[#828282] mt-1">
-                          {notification.time}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="justify-center text-[#1e3a8a] font-medium">
-                View all notifications
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
 
           <DropdownMenu open={profileOpen} onOpenChange={setProfileOpen}>
             <DropdownMenuTrigger asChild>
@@ -345,7 +310,8 @@ export function DashboardHeader() {
                 )}
                 <div className="flex flex-col items-start">
                   <span className="text-[#1e3a8a] font-semibold text-sm">
-                    {userData?.user?.profile?.business_name || "Loading..."}
+                    {userData?.user?.profile?.business_name ||
+                      userData?.user?.email?.split("@")[0]}
                   </span>
                   <span className="text-[#828282] text-xs">
                     {userData?.user?.email?.split("@")[0]}

@@ -1,12 +1,14 @@
 'use client';
 
-import { DashboardHeader } from '@/components/dashboard/layout/dashboard-header';
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
-import Sidebar from '@/components/dashboard/layout/sidebar';
+
+import { DashboardLoadingUI } from "@/components/common/DashboardLoadingUI";
 import { useStore } from "@/hooks/useStore"
 import { useRouter } from 'next/navigation';
 import { useEffect } from "react";
 import { use } from 'react';
+
+// Enhanced Loading Component
+
 
 export default function StoreDashboardLayout({
   children,
@@ -35,13 +37,10 @@ export default function StoreDashboardLayout({
   }, [loading, stores, resolvedParams.storeId, router]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <DashboardLoadingUI />;
   }
 
   return (
-  
- <main>{children}</main>
-   
-     
+    <main>{children}</main>
   );
-} 
+}
