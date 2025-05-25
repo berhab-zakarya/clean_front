@@ -18,7 +18,7 @@ export default function EcommerceSetupGuide() {
   const [showProfileForm, setShowProfileForm] = useState(false);
   const [showStoreForm, setShowStoreForm] = useState(false);
   const [completedSteps, setCompletedSteps] = useState({
-    profile: false,
+    profile: true,
     storeName: false,
     categories: false,
     products: false,
@@ -79,12 +79,12 @@ export default function EcommerceSetupGuide() {
   };
 
   const getStepStatus = (step) => {
-    if (step === "profile" && completedSteps.profile) return "completed";
+    // if (step === "profile" && completedSteps.profile) return "completed";
     if (step === "name" && completedSteps.storeName) return "completed";
     if (step === "categories" && completedSteps.categories) return "completed";
     if (step === "product" && completedSteps.products) return "completed";
     
-    if (step === "profile") return "current";
+    // if (step === "profile") return "current";
     if (step === "name" && completedSteps.profile) return "current";
     if (step === "categories" && completedSteps.storeName) return "current";
     if (step === "product" && completedSteps.categories) return "current";

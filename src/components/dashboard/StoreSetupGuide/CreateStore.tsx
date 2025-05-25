@@ -512,6 +512,16 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
                             Visit Your Store
                             <ExternalLink className="h-4 w-4" />
                           </button>
+                            <button
+                            onClick={()=>{
+                              router.push(`/dashboard/${store.id}`);
+                            }}
+                            className="flex items-center gap-2 text-white bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-3 rounded-lg font-semibold hover:from-indigo-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                          >
+                            <Globe className="h-5 w-5" />
+                            Visit Your Store
+                            <ExternalLink className="h-4 w-4" />
+                          </button>
                           <p className="text-sm text-gray-400 mt-2 font-mono">{storeUrl}</p>
                         </div>
                         <p className="text-gray-400 text-sm mt-4">

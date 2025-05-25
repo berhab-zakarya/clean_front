@@ -55,13 +55,16 @@ export default function SignupPage() {
     }
 
     // Check if password meets requirements (min 8 chars, at least 1 number and 1 letter)
-    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
-    if (!passwordRegex.test(formData.password)) {
-      showErrorToast(
-        "Password must be at least 8 characters long and contain at least one letter and one number"
-      );
-      return false;
-    }
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
+if (!passwordRegex.test(formData.password)) {
+  console.error("Password validation failed");
+  console.error("Password:", formData.password);
+  showErrorToast(
+    "Password must be at least 8 characters long and contain at least one letter and one number"
+  );
+  return false;
+}
+
 
     // Check terms agreement
     if (!agreeTerms) {
