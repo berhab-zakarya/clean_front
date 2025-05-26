@@ -18,7 +18,7 @@ import { Upload,  CheckCircle2, AlertCircle } from "lucide-react"
 import { toast } from "react-toastify";
 import { Alert } from "@/components/common/feedback/Alert";
 
-s
+
 export default function PersonalAccount() {
   const { userData, loading, error: userError, isUpdating, updateProfile } = useUser();
   const { userStore, loading: storeLoading } = useStore();

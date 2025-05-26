@@ -214,5 +214,5 @@ export const CompleteProfile = ({ onComplete }: CompleteProfileProps) => {
 // Add this type to help with type checking
 export type ProfileCompletionStatus = {
   isComplete: boolean;
-  profile: typeof formData;
+  profile: typeof FormData;
 };
