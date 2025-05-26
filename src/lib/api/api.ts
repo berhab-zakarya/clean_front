@@ -1143,18 +1143,17 @@ export const attributesAPI = {
 
   addAttributeValues: async (
     attributeId: number, 
-    data: AddAttributeValuesRequest
+    data: AddAttributeValuesRequest,
+    store: Store
   ): Promise<AttributeValue[]> => {
     try {
-      // Get current store
-      const currentStore = await storesAPI.getCurrentStore();
-      if (!currentStore?.store_url) {
+      if (!store?.store_url) {
         throw new Error('Store URL not found');
       }
 
       // Create a new axios instance with store URL as base
       const storeApi = axios.create({
-        baseURL: ensurePort8000(currentStore.store_url),
+        baseURL: ensurePort8000(store.store_url),
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('access_token')}`
