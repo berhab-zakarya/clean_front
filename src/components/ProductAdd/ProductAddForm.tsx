@@ -26,6 +26,7 @@ import { useStore } from "@/hooks/useStore";
 import { useRouter } from 'next/navigation';
 import { toast } from "react-hot-toast";
 import type { CreateProductRequest, ProductVariant } from "@/lib/types/product";
+import { useStorePath } from "@/hooks/useStorePath";
 
 
 // Fixed type definition for media files
@@ -55,6 +56,7 @@ export default function ProductAddForm() {
   const router = useRouter();
   const { createProduct, addProductVariants } = useProduct();
   const { storeId, loading: storeLoading } = useStore();
+  const { currentStoreId } = useStorePath();
 
   const [productData, setProductData] = useState({
     title: "",
@@ -143,15 +145,8 @@ export default function ProductAddForm() {
     try {
       setIsSubmitting(true);
       
-      if (!storeId) {
+      if (!storeId || !currentStoreId) {
         toast.error("Store information is missing");
-        return;
-      }
-
-      // Get current store
-      const currentStore = await storesAPI.getCurrentStore(storeId);
-      if (!currentStore) {
-        toast.error("Store not found");
         return;
       }
 

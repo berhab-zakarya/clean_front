@@ -1,7 +1,7 @@
 "use client"
 import { useState } from 'react';
 import { usePassword } from '@/hooks/usePassword';
-import { toast } from 'react-toastify';
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Alert } from "@/components/ui/alert"
-import { AlertCircle, CheckCircle2, Shield, Key, Smartphone, Monitor, Globe, Bell, Lock } from "lucide-react"
+import { AlertCircle, CheckCircle2 Key, Smartphone, Monitor, Lock } from "lucide-react"
 
 export default function SecuritySettings() {
   const { isLoading, changePassword } = usePassword();

@@ -131,6 +131,10 @@ export function useProduct() {
     attributeId: number, 
     values: string[]
   ): Promise<AttributeValue[] | null> => {
+    if (!currentStore) {
+      throw new Error('No store selected');
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -140,10 +144,10 @@ export function useProduct() {
           color_code: '',
           image_url: ''
         }))
-      });
+      }, currentStore);
       return result;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add attribute values');
+      setError(err instanceof Error ? { message: err.message } : { message: 'Failed to add attribute values' });
       return null;
     } finally {
       setLoading(false);
