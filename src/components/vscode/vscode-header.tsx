@@ -1,14 +1,20 @@
-import { Code, Github, Settings} from "lucide-react"
+import { Code, Github, Settings, ArrowLeft } from "lucide-react"
+import SimpleButton from "../common/SimpleButton"
 
 interface VSCodeHeaderProps {
   tenantName: string
   onPreviewToggle?: (isPreview: boolean) => void
+  onBack?: () => void
 }
 
-export function VSCodeHeader({ tenantName }: VSCodeHeaderProps) {
-  
-
-
+export function VSCodeHeader({ tenantName, onBack }: VSCodeHeaderProps) {
+  const handleBack = () => {
+    if (onBack) {
+      onBack()
+    } else {
+      window.history.back()
+    }
+  }
 
   return (
     <div className="relative flex items-center px-6 py-3 bg-gradient-to-r from-gray-950 via-gray-900 to-gray-950 border-b border-gray-700/50 shadow-xl backdrop-blur-sm">
@@ -17,6 +23,12 @@ export function VSCodeHeader({ tenantName }: VSCodeHeaderProps) {
       
       {/* Left section with enhanced styling */}
       <div className="flex items-center space-x-4 relative z-10">
+        <SimpleButton
+          title="Back"
+          icon={<ArrowLeft size={16} className="transition-transform duration-200 group-hover:-translate-x-0.5" />}
+          onClick={handleBack}
+          className="group bg-gray-800/50 hover:bg-gray-700/70 text-gray-300 hover:text-white rounded-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-400/50 hover:shadow-lg hover:shadow-gray-900/30 border border-gray-700/30 hover:border-gray-600/50 px-3 py-2 text-sm font-medium"
+        />
         <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg">
           <Code size={22} className="text-white" />
         </div>

@@ -131,6 +131,44 @@ export function useStore() {
     }
   }, []);
 
+  const updateStore = async (storeId: number, storeData: Partial<CreateStoreRequest>): Promise<Store | null> => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      if (storeData.subdomain && !validateSubdomain(storeData.subdomain)) {
+        throw new Error('Subdomain must be alphanumeric, optionally with hyphens, and between 1-63 characters');
+      }
+
+      const updatedStore = await storesAPI.updateStore(storeId, storeData);
+      
+      if (updatedStore) {
+        // Update the store in state if it's the current user's store
+        if (userStore?.id === storeId) {
+          setUserStore(updatedStore);
+          // Update cache
+          localStorage.setItem('userStore', JSON.stringify(updatedStore));
+        }
+        
+        // Update in stores list if it exists there
+        setStores(prevStores => 
+          prevStores.map(store => 
+            store.id === storeId ? updatedStore : store
+          )
+        );
+      }
+      
+      return updatedStore;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update store';
+      setError(errorMessage);
+      console.error('Store update failed:', errorMessage);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const initializeStore = async () => {
       // Try to get cached store first
@@ -166,5 +204,6 @@ export function useStore() {
     getStore,
     checkStoreExistence,
     getAllStores,
+    updateStore,
   };
 }

@@ -10,7 +10,7 @@ export interface Attribute {
 export interface CreateAttributeRequest {
   name: string;
   slug: string;
-  description: string;
+
 }
 
 export interface AttributeValue {

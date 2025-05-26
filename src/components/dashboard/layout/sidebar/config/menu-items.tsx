@@ -64,7 +64,7 @@ export const preferencesItems = [
   {
     icon: iconComponent(settings),
     text: "Settings",
-    href: (storeId: string) => `/dashboard/${storeId}/settings`,
+    href: (storeId: string) => `/dashboard/settings`,
     active: false
   },
   {

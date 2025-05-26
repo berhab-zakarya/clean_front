@@ -2,7 +2,7 @@
 import axios, { AxiosRequestConfig } from "axios";
 import { Plan } from "../types/plans";
 import { Store, CreateStoreRequest, StoreApiError } from "../types/store";
-import { ProductApiError, CreateProductRequest, Product } from "../types/product";
+import { ProductApiError, CreateProductRequest, Product, ProductImage, AddProductImageRequest } from "../types/product";
 import { Category, CreateCategoryRequest } from "../types/category";
 import { Attribute, CreateAttributeRequest, AttributeValue, AddAttributeValuesRequest } from "../types/attribute";
 import {
@@ -596,6 +596,30 @@ export const storesAPI = {
       throw new Error('Network error while creating store');
     }
   },
+  updateStore: async (storeId: number, data: Partial<CreateStoreRequest>): Promise<Store> => {
+    try {
+      const response = await api.patch<Store>(`/stores/${storeId}/`, data);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const apiError = error.response?.data as StoreApiError;
+        if (apiError.subdomain?.[0]) {
+          throw new Error(apiError.subdomain[0]);
+        }
+        const errorMessage =
+          apiError?.message ||
+          apiError?.detail ||
+          Object.values(apiError?.errors || {}).flat().join(', ') ||
+          'Failed to update store';
+        debug.error('Store update error:', {
+          status: error.response?.status,
+          data: error.response?.data
+        });
+        throw new Error(errorMessage);
+      }
+      throw new Error('Network error while updating store');
+    }
+  },
   getCurrentStore: async (storeId?: string): Promise<Store> => {
     try {
       const response = await api.get<Store[]>('/stores/');
@@ -653,7 +677,58 @@ export const productsAPI = {
         }
       });
 
-      const response = await storeApi.post<Product>('/api/v1/products/', data);
+      // First create the product without images
+      const productData = {
+        name: data.name,
+        slug: data.slug,
+        description: data.description,
+        price: data.price,
+        promotional_price: data.promotional_price,
+        currency: data.currency,
+        stock_quantity: data.stock_quantity,
+        sku: data.sku,
+        category: data.category,
+        is_featured: data.is_featured,
+        status: data.status,
+        has_variants: data.has_variants,
+        faqs: data.faqs
+      };
+
+      const response = await storeApi.post<Product>('/api/v1/products/', productData);
+
+      // Wait for 10 seconds before adding images
+      await new Promise(resolve => setTimeout(resolve, 10000));
+
+      // If there are images, add them to the product
+      if (data.images && data.images.length > 0) {
+        const formData = new FormData();
+        
+        // Add each image file to the form data
+        data.images.forEach((image) => {
+          // Add file with the correct field name
+          formData.append('images', image.file);
+          formData.append('alt_texts', image.alt_text || '');
+          formData.append('is_primary', String(image.is_primary || false));
+          formData.append('sort_orders', String(image.sort_order || 0));
+        });
+
+        // Add images to the product
+        await storeApi.post<ProductImage[]>(
+          `/api/v1/products/${response.data.id}/add_images/`,
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+              'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            },
+          }
+        );
+
+        // Fetch the updated product to get the images
+        const updatedProduct = await storeApi.get<Product>(`/api/v1/products/${response.data.id}/`);
+        return updatedProduct.data;
+      }
+
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -683,6 +758,49 @@ export const productsAPI = {
         );
       }
       throw new Error('Network error while creating product. Please check your connection.');
+    }
+  },
+  addProductImage: async (productId: number, imageData: AddProductImageRequest, store: Store): Promise<ProductImage> => {
+    try {
+      if (!store?.store_url) {
+        throw new Error('Store URL not found');
+      }
+
+      // Create a new axios instance with store URL as base
+      const storeApi = axios.create({
+        baseURL: ensurePort8000(store.store_url),
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('access_token')}`
+        }
+      });
+
+      const formData = new FormData();
+      formData.append('file', imageData.file);
+      formData.append('alt_text', imageData.alt_text);
+      formData.append('is_primary', String(imageData.is_primary));
+      formData.append('sort_order', String(imageData.sort_order));
+
+      const response = await storeApi.post<ProductImage>(
+        `/api/v1/products/${productId}/add_images/`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const apiError = error.response?.data as ProductApiError;
+        throw new Error(
+          apiError?.message || 
+          apiError?.detail || 
+          'Failed to add product image'
+        );
+      }
+      throw new Error('Network error while adding product image');
     }
   },
   getProducts: async (store: Store): Promise<Product[]> => {
@@ -786,6 +904,73 @@ export const productsAPI = {
       throw new Error('Network error while adding product variants');
     }
   },
+  deleteProduct: async (productId: number, store: Store): Promise<void> => {
+    try {
+      if (!store?.store_url) {
+        throw new Error('Store URL not found');
+      }
+
+      const storeApi = axios.create({
+        baseURL: ensurePort8000(store.store_url),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('access_token')}`
+        }
+      });
+
+      await storeApi.delete(`/api/v1/products/${productId}/`);
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const apiError = error.response?.data as ProductApiError;
+        throw new Error(
+          apiError?.message || 
+          apiError?.detail || 
+          'Failed to delete product'
+        );
+      }
+      throw new Error('Network error while deleting product');
+    }
+  },
+  updateProduct: async (productId: number, data: Partial<CreateProductRequest>, store: Store): Promise<Product> => {
+    try {
+      if (!store?.store_url) {
+        throw new Error('Store URL not found');
+      }
+
+      const storeApi = axios.create({
+        baseURL: ensurePort8000(store.store_url),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('access_token')}`
+        }
+      });
+
+      const response = await storeApi.patch<Product>(`/api/v1/products/${productId}/`, data);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const apiError = error.response?.data as ProductApiError;
+        if (error.response?.status === 500) {
+          throw new Error('Server error occurred. Please try again or contact support.');
+        }
+        if (apiError.errors) {
+          const errorDetails: Record<string, string[]> = {};
+          Object.entries(apiError.errors).forEach(([field, messages]) => {
+            errorDetails[field] = Array.isArray(messages) ? messages : [String(messages)];
+          });
+          const errorObj = new Error('Validation failed') as Error & { details: Record<string, string[]> };
+          errorObj.details = errorDetails;
+          throw errorObj;
+        }
+        throw new Error(
+          apiError?.message || 
+          apiError?.detail || 
+          'Failed to update product'
+        );
+      }
+      throw new Error('Network error while updating product');
+    }
+  },
 };
 
 // --- Plans API ---
@@ -870,33 +1055,55 @@ export const categoriesAPI = {
 
 // --- Attributes API ---
 export const attributesAPI = {
-  createAttribute: async (data: CreateAttributeRequest): Promise<Attribute> => {
+  createAttribute: async (data: CreateAttributeRequest, store: Store): Promise<Attribute> => {
     try {
-      // Get current store
-      const currentStore = await storesAPI.getCurrentStore();
-      if (!currentStore?.store_url) {
+      if (!store?.store_url) {
         throw new Error('Store URL not found');
       }
 
       // Create a new axios instance with store URL as base
       const storeApi = axios.create({
-        baseURL: ensurePort8000(currentStore.store_url),
+        baseURL: ensurePort8000(store.store_url),
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('access_token')}`
         }
       });
 
-      const response = await storeApi.post<Attribute>('/api/v1/attributes/', data);
+      // Validate required fields
+      if (!data.name || !data.slug) {
+        throw new Error('Name and slug are required for attribute creation');
+      }
+
+      // Only send name and slug
+      const requestData = {
+        name: data.name.trim(),
+        slug: data.slug.trim()
+      };
+
+      // Log the request data for debugging
+      console.log('Making attribute creation request with data:', requestData);
+      console.log('Request URL:', `${ensurePort8000(store.store_url)}/api/v1/attributes/`);
+      console.log('Request headers:', storeApi.defaults.headers);
+
+      const response = await storeApi.post<Attribute>('/api/v1/attributes/', requestData);
+      
+      // Log the response for debugging
+      console.log('Attribute creation response:', response.data);
+      
+      if (!response.data) {
+        throw new Error('No data received from server');
+      }
+
       return response.data;
     } catch (error) {
+      console.error('Attribute creation error:', error);
       if (axios.isAxiosError(error)) {
         const apiError = error.response?.data as ApiError;
-        throw new Error(
-          apiError?.detail || 
+        const errorMessage = apiError?.detail || 
           apiError?.message || 
-          'Failed to create attribute'
-        );
+          (error.response?.status === 500 ? 'Server error occurred. Please try again.' : 'Failed to create attribute');
+        throw new Error(errorMessage);
       }
       throw new Error('Network error while creating attribute');
     }

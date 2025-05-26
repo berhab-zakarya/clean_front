@@ -3,8 +3,7 @@ import {
   Trash2,
   MoreHorizontal, Info,
   ChevronDown,
-  Plus,
-  Minus
+  Plus
 } from "lucide-react";
 
 import Image from "next/image";
@@ -26,7 +25,8 @@ import { useProduct } from "@/hooks/useProduct";
 import { useStore } from "@/hooks/useStore";
 import { useRouter } from 'next/navigation';
 import { toast } from "react-hot-toast";
-import type { addProductImage, CreateProductRequest, ProductImage, ProductVariant } from "@/lib/types/product";
+import type { CreateProductRequest, ProductVariant } from "@/lib/types/product";
+
 
 // Fixed type definition for media files
 interface MediaFile {
@@ -37,80 +37,23 @@ interface MediaFile {
   file: File;
 }
 
-interface ProductImageUpload {
-  file: File;
-  alt_text: string;
-  is_primary: boolean;
-  sort_order: number;
-}
-
 interface FAQ {
   question: string;
   answer: string;
 }
 
-function UrlDialogButton() {
-  const [showUrlInput, setShowUrlInput] = useState(false);
-  const [url, setUrl] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleUploadClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-      fileInputRef.current.click();
-    }
-  };
-
-  const handleAddUrl = () => {
-    if (!url) return;
-    alert(`File added from URL: ${url}`);
-    setShowUrlInput(false);
-    setUrl("");
-  };
-
-  return showUrlInput ? (
-    <div className="flex gap-2 items-center">
-      <input
-        type="url"
-        className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-        placeholder="Paste file URL"
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
-        autoFocus
-      />
-      <Button
-        type="button"
-        className="bg-blue-700 hover:bg-blue-800 text-white px-3 py-2 rounded font-semibold text-sm"
-        onClick={handleAddUrl}
-        variant="primary"
-      >
-        Add
-      </Button>
-      <button
-        type="button"
-        className="text-gray-400 hover:text-gray-600 text-xl px-2"
-        onClick={() => setShowUrlInput(false)}
-        aria-label="Cancel"
-      >
-        ×
-      </button>
-    </div>
-  ) : (
-    <Button
-      type="button"
-      className="text-blue-700 underline bg-transparent px-4 py-2 font-semibold"
-      onClick={() => setShowUrlInput(true)}
-      variant="outline"
-    >
-      Add from URL
-    </Button>
-  );
+// Extended ProductVariant type to include all required properties
+interface ExtendedProductVariant extends ProductVariant {
+  attributes: Array<{
+    attribute_id: number;
+    value_id: number;
+  }>;
 }
 
 export default function ProductAddForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
-  const { createProduct, addProductImages, addProductVariants } = useProduct();
+  const { createProduct, addProductVariants } = useProduct();
   const { storeId, loading: storeLoading } = useStore();
 
   const [productData, setProductData] = useState({
@@ -126,7 +69,7 @@ export default function ProductAddForm() {
     collections: [],
     tags: [],
     sku: "",
-    inventory_quantity: 0,
+    inventory_quantity: 10,
     available_quantity: 0,
     requires_shipping: true,
     channels: {
@@ -148,7 +91,7 @@ export default function ProductAddForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showExistingDialog, setShowExistingDialog] = useState(false);
   const [hovering, setHovering] = useState(false);
-  const [variants, setVariants] = useState<ProductVariant[]>([]);
+  const [variants, setVariants] = useState<ExtendedProductVariant[]>([]);
   const [faqs, setFaqs] = useState<FAQ[]>([]);
 
   const handleDragEnter = () => setHovering(true);
@@ -205,6 +148,13 @@ export default function ProductAddForm() {
         return;
       }
 
+      // Get current store
+      const currentStore = await storesAPI.getCurrentStore(storeId);
+      if (!currentStore) {
+        toast.error("Store not found");
+        return;
+      }
+
       // Prepare the product data according to CreateProductRequest type
       const finalProductData: CreateProductRequest = {
         name: productData.title,
@@ -222,6 +172,12 @@ export default function ProductAddForm() {
         faqs: faqs.map(faq => ({
           question: faq.question,
           answer: faq.answer
+        })),
+        images: mediaFiles.map((file, index) => ({
+          file: file.file,
+          alt_text: file.name,
+          is_primary: index === 0,
+          sort_order: index
         }))
       };
 
@@ -232,60 +188,19 @@ export default function ProductAddForm() {
         throw new Error('Failed to create product: No response received');
       }
 
-      // Get the product ID from the response
-      const productId = result.id;
-      if (!productId) {
-        throw new Error('Failed to create product: No product ID in response');
-      }
-
-      let imagesUploadSuccess = true;
-      // If we have media files, add them as product images
-      if (mediaFiles.length > 0) {
-        try {
-          const productImages = mediaFiles.map((file, index) => ({
-            image: file.preview, // Use the preview URL as the image string
-            alt_text: file.name,
-            is_primary: index === 0
-          }));
-
-          const imagesResult = await addProductImages(productId, productImages);
-          if (!imagesResult) {
-            imagesUploadSuccess = false;
-            throw new Error('Failed to upload product images');
-          }
-        } catch (error) {
-          imagesUploadSuccess = false;
-          console.error('Error uploading images:', error);
-          toast.error("Failed to upload product images. Please try again.");
-          return;
-        }
-      }
-
-      // If the product has variants, add them
-      let variantsUploadSuccess = true;
+      // If there are variants, add them to the product
       if (variants.length > 0) {
         try {
-          console.log('Adding variants:', variants);
-          const variantsResult = await addProductVariants(productId, variants);
-          if (!variantsResult) {
-            variantsUploadSuccess = false;
-            throw new Error('Failed to add variants');
-          }
+          await addProductVariants(result.id, variants);
+          toast.success("Product variants added successfully");
         } catch (error) {
-          variantsUploadSuccess = false;
-          console.error('Failed to add variants:', error);
-          toast.error("Failed to add variants. Please try adding variants manually.");
-          return;
+          console.error("Error adding variants:", error);
+          toast.error("Product created but failed to add variants");
         }
       }
 
-      // Only navigate if all operations were successful
-      if (imagesUploadSuccess && variantsUploadSuccess) {
-        toast.success("Product created successfully!");
-        router.push('/dashboard/products');
-      } else {
-        toast.error("Product created but some operations failed. Please check the product details.");
-      }
+      toast.success("Product created successfully!");
+      router.push('/dashboard/products');
     } catch (error) {
       console.error("Product creation error:", error);
       toast.error(error instanceof Error ? error.message : "Failed to add product");
@@ -294,8 +209,9 @@ export default function ProductAddForm() {
     }
   };
 
-  const handleInputChange = (e: any) => {
-    const { name, value, type, checked } = e.target;
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
     setProductData(prev => ({
       ...prev,
       [name]: type === "checkbox" ? checked : 
@@ -337,7 +253,7 @@ export default function ProductAddForm() {
   };
 
   const handleAddOption = (option: { id: string; name: string; values: string[] }) => {
-    // Convert option to ProductVariant format
+    // Convert option to ExtendedProductVariant format
     const newVariants = option.values.map(value => {
       // Use predefined attribute IDs based on option name
       const attributeId = option.name.toLowerCase() === 'size' ? 1 : 2;
@@ -355,6 +271,7 @@ export default function ProductAddForm() {
         `${productData.sku}-${value.toUpperCase()}`;
 
       return {
+        id: Math.random().toString(36).substr(2, 9),
         sku: skuPrefix,
         price_adjustment: "0.00",
         stock_quantity: productData.inventory_quantity || 0,
@@ -363,8 +280,10 @@ export default function ProductAddForm() {
             attribute_id: attributeId,
             value_id: valueId
           }
-        ]
-      };
+        ],
+        attribute_values: [],
+        final_price: productData.price
+      } as ExtendedProductVariant;
     });
 
     // Validate variants before adding
@@ -416,8 +335,6 @@ export default function ProductAddForm() {
       </div>
     );
   }
-
-  
 
   return (
     <div className="bg-gray-50 min-h-screen p-4 md:p-8">
@@ -734,7 +651,15 @@ export default function ProductAddForm() {
           
 
             
-              <InventoryManagement />
+              <InventoryManagement 
+                initialQuantity={productData.inventory_quantity}
+                onQuantityChange={(quantity) => {
+                  setProductData(prev => ({
+                    ...prev,
+                    inventory_quantity: quantity
+                  }));
+                }}
+              />
             
               <ShippingComponent />
            
@@ -1076,54 +1001,21 @@ export default function ProductAddForm() {
           className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
           aria-hidden="true"
         />
-        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-auto p-8 relative z-50 animate-fade-in">
-          <button
-            className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition"
-            onClick={() => setShowExistingDialog(false)}
-            aria-label="Close"
-          >
-            <svg
-              width="24"
-              height="24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
+        <div className="relative bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-gray-900">Select Existing Media</h2>
+            <button
+              onClick={() => setShowExistingDialog(false)}
+              className="text-gray-400 hover:text-gray-500"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-          <div className="flex flex-col items-center">
-            <img
-              alt=""
-              src="https://cdn.shopify.com/shopifycloud/web/assets/v1/vite/client/fr/assets/empty-state-media-DnFQWaULcLdk.svg"
-              className="w-36 h-36 mb-6 drop-shadow"
-              role="presentation"
-            />
-            <div className="max-w-xs text-center">
-              <p className="text-xl font-bold mb-2 text-gray-800">No files yet</p>
-              <p className="text-gray-500 mb-6 text-base">
-                Upload files to select from your media library. You can reuse
-                these files in other sections of your store.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Button
-                  type="button"
-                  className="bg-blue-700 hover:bg-blue-800 text-white px-5 py-2 rounded-lg font-semibold shadow transition"
-                  onClick={() => {
-                    setShowExistingDialog(false);
-                    setActiveTab("upload");
-                  }}
-                  variant="primary"
-                >
-                  Upload a file
-                </Button>
-                <UrlDialogButton />
-              </div>
-            </div>
+              <span className="sr-only">Close</span>
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="mt-4">
+            <p className="text-gray-500">No existing media found.</p>
           </div>
         </div>
       </Dialog>
