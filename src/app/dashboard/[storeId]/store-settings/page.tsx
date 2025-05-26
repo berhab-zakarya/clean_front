@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
-import { Building2, Users, ExternalLink, Edit2, Save, Globe, Mail, Phone, MapPin, Facebook, Instagram, MessageCircle, Sparkles, Star } from 'lucide-react';
+import { Building2, Users, ExternalLink, Edit2, Save, Globe, Mail, Phone, MapPin, Facebook, Instagram, MessageCircle, Sparkles, Star, Code } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
@@ -18,7 +18,7 @@ import { Store } from '@/lib/types/store';
 export default function StoreSettingsPage() {
   const params = useParams();
   const storeId = params.storeId as string;
-  const { stores, loading, error } = useStore();
+  const { stores, loading, error, updateStore } = useStore();
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [editedStore, setEditedStore] = useState<Store | null>(null);
@@ -31,8 +31,33 @@ export default function StoreSettingsPage() {
   };
 
   const handleSave = async () => {
-    // TODO: Implement save functionality
-    setIsEditing(false);
+    if (!editedStore || !currentStore) return;
+    
+    try {
+      const updatedStore = await updateStore(currentStore.id, {
+        store_name: editedStore.store_name,
+        email: editedStore.email,
+        phone: editedStore.phone,
+        address: editedStore.address,
+        description: editedStore.description,
+        primary_color: editedStore.primary_color,
+        secondary_color: editedStore.secondary_color,
+        facebook_url: editedStore.facebook_url,
+        instagram_url: editedStore.instagram_url,
+        whatsapp_number: editedStore.whatsapp_number
+      });
+
+      if (updatedStore) {
+        setIsEditing(false);
+        setEditedStore(null);
+      }
+    } catch (err) {
+      console.error('Failed to update store:', err);
+    }
+  };
+
+  const handleNavigateToDevelopers = () => {
+    router.push(`/dashboard/${storeId}/developers`);
   };
 
   const handleInputChange = (field: keyof Store, value: string) => {
@@ -126,6 +151,13 @@ export default function StoreSettingsPage() {
               </div>
             </div>
             <div className="flex gap-4">
+              <Button 
+                onClick={handleNavigateToDevelopers}
+                className="bg-gradient-to-r from-[#7C5CFC] to-[#9F84FD] hover:from-[#6B4EEB] hover:to-[#8B6EFD] text-white shadow-2xl shadow-[#7C5CFC]/30 hover:shadow-[#7C5CFC]/50 transition-all duration-300 transform hover:scale-105 px-6"
+              >
+                <Code className="w-5 h-5 mr-2" />
+                Developers
+              </Button>
               {isEditing ? (
                 <>
                   <Button 

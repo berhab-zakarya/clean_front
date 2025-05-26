@@ -10,15 +10,24 @@ export interface CreateProductRequest {
   slug: string;
   description: string;
   price: number;
-  promotional_price: number;
+  promotional_price?: number;
   currency: string;
   stock_quantity: number;
   sku: string;
-  is_featured: boolean;
   category: number;
-  status: 'published' | 'draft' | 'archived';
+  is_featured: boolean;
+  status: string;
   has_variants: boolean;
-  faqs: FAQ[];
+  faqs?: Array<{
+    question: string;
+    answer: string;
+  }>;
+  images?: Array<{
+    file: File;
+    alt_text: string;
+    is_primary: boolean;
+    sort_order: number;
+  }>;
 }
 
 export interface Product {
@@ -61,15 +70,16 @@ export interface ProductError {
 export interface ProductImage {
   id: number;
   image: string;
-  alt_text: string;
-  is_primary: boolean;
-}
-export interface addProductImage {
-  image: string;
-  alt_text: string;
+  alt_text?: string;
   is_primary: boolean;
 }
 
+export interface AddProductImageRequest {
+  file: File;
+  alt_text?: string;
+  is_primary?: boolean;
+  sort_order?: number;
+}
 
 export interface ProductVideo {
   id: number;

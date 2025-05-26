@@ -52,6 +52,8 @@ FeatureSpotlight.displayName = 'FeatureSpotlight'
 
 export const CreateStore = ({ onComplete }: CreateStoreProps) => {
   const router = useRouter()
+  const [storeId, setStoreId] = useState<number | null>(null)
+
   const { createStore, loading: storeLoading } = useStore()
   const [formData, setFormData] = useState({
     store_name: "",
@@ -179,20 +181,27 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
 
         // Check for successful deployment - updated conditions
         if (msg.includes("Pure store deployment successful") || 
-            msg.includes("deployment successful") ||
-            msg.includes("Store deployed successfully") ||
-            status === "success" || 
-            status === "deployed" ||
-            msg.includes("deployed successfully")) {
+    msg.includes("deployment successful") ||
+    msg.includes("Store deployed successfully") ||
+    msg.includes("ready") ||
+    msg.toLowerCase().includes("ready") ||  // Case-insensitive ready detection
+    status === "success" || 
+    status === "deployed" ||
+    msg.includes("deployed successfully")) {
 
+          
           clearTimeout(deploymentTimeout)
           setDeploymentComplete(true)
           
           setTerminalLines(prev => [...prev, {
-            type: "span" as const,
-            text: "🎉 Store deployed successfully!",
-            className: "text-emerald-400 font-bold text-lg",
-          }])
+  type: "span" as const,
+  text: "🎉 Store deployed successfully!",
+  className: "text-emerald-400 font-bold text-lg",
+}, {
+  type: "span" as const,
+  text: "🚀 Terminal Ready",  // Added Terminal Ready text
+  className: "text-cyan-400 font-bold text-lg",
+}])
           
           // Generate store URL if not provided
           if (!url && formData.subdomain) {
@@ -212,14 +221,18 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
               text: `🌐 Store URL: ${cleanUrl}`,
               className: "text-emerald-400 font-medium",
             }])
+            
+            // Automatically open the store URL
+            setTimeout(() => {
+              window.open(cleanUrl, "_blank", "noopener,noreferrer")
+              toast.success("Your store is opening automatically!")
+            }, 2000)
           }
           
-          // Keep the deployment view visible for at least 10 seconds before redirecting
+          // Close WebSocket connection immediately when ready
           setTimeout(() => {
             ws.close()
-            router.push("/dashboard/StoreSetupGuide")
-            onComplete()
-          }, 10000)
+          }, 3000)
           
         } else if (status === "failed" || 
                    msg.toLowerCase().includes("deployment failed") ||
@@ -366,10 +379,11 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
         
         if (response.id) {
           setStoreUrl(response.store_url);
-          // Add a small delay before starting WebSocket connection
-          setTimeout(() => {
-            handleWebSocket(response.id)
-          }, 1000)
+  setStoreId(response.id); // Store the ID for navigation
+  setTimeout(() => {
+    handleWebSocket(response.id)
+  }, 1000)
+
         } else {
           throw new Error("No store ID received from server")
         }
@@ -442,7 +456,7 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
           <div className="fixed inset-0 z-50">
             <DeploymentBackground
               content={
-                <div className="w-full h-full flex items-center justify-center p-4">
+                <div className="w-full h-full flex items-center justify-center p-4 bg-gradient-to-br from-gray-900/95 via-gray-900/90 to-indigo-900/30">
                   <div className="w-full max-w-4xl mx-auto">
                     <div className="flex flex-col items-center mb-8">
                       <div className="relative mb-6">
@@ -512,16 +526,17 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
                             Visit Your Store
                             <ExternalLink className="h-4 w-4" />
                           </button>
-                            <button
-                            onClick={()=>{
-                              router.push(`/dashboard/${store.id}`);
-                            }}
-                            className="flex items-center gap-2 text-white bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-3 rounded-lg font-semibold hover:from-indigo-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
-                          >
-                            <Globe className="h-5 w-5" />
-                            Visit Your Store
-                            <ExternalLink className="h-4 w-4" />
-                          </button>
+                           {storeId && (
+  <button
+    onClick={() => {
+      router.push(`/dashboard/${storeId}`);
+    }}
+    className="flex items-center gap-2 text-white bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-3 rounded-lg font-semibold hover:from-emerald-600 hover:to-teal-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
+  >
+    <Store className="h-5 w-5" />
+    Go to Dashboard
+  </button>
+)}
                           <p className="text-sm text-gray-400 mt-2 font-mono">{storeUrl}</p>
                         </div>
                         <p className="text-gray-400 text-sm mt-4">
