@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { Mail, Lock } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import SimpleButton from "@/components/common/SimpleButton";
 import { useState } from "react";
 import useAuth from "@/hooks/useAuth";
@@ -25,6 +25,7 @@ export default function LoginPage() {
     password: "",
   });
   const [rememberMe, setRememberMe] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -154,13 +155,20 @@ export default function LoginPage() {
                   </div>
                   <input
                     id="password"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
-                    className="w-full pl-10 pr-4 py-3 rounded-full border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-800"
+                    className="w-full pl-10 pr-10 py-3 rounded-full border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-800"
                     value={formData.password}
                     onChange={handleChange}
                     required
                   />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-gray-600"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
                 </div>
               </div>
 
