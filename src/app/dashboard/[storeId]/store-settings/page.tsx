@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
-import { Building2, Users, ExternalLink, Edit2, Save, Globe, Mail, Phone, MapPin, Facebook, Instagram, MessageCircle, Sparkles, Star, Code } from 'lucide-react';
+import { Building2, Users, ExternalLink, Edit2, Save, Globe, Mail, Phone, MapPin, Facebook, Instagram, MessageCircle, Sparkles, Star, Code, Megaphone, Briefcase } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
@@ -18,7 +18,7 @@ import { Store } from '@/lib/types/store';
 export default function StoreSettingsPage() {
   const params = useParams();
   const storeId = params.storeId as string;
-  const { stores, loading, error, updateStore } = useStore();
+  const { stores, loading, error, updateStore, updateTenant } = useStore();
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [editedStore, setEditedStore] = useState<Store | null>(null);
@@ -34,20 +34,33 @@ export default function StoreSettingsPage() {
     if (!editedStore || !currentStore) return;
     
     try {
+      // Update store basic info
       const updatedStore = await updateStore(currentStore.id, {
         store_name: editedStore.store_name,
-        email: editedStore.email,
-        phone: editedStore.phone,
-        address: editedStore.address,
-        description: editedStore.description,
-        primary_color: editedStore.primary_color,
-        secondary_color: editedStore.secondary_color,
-        facebook_url: editedStore.facebook_url,
-        instagram_url: editedStore.instagram_url,
-        whatsapp_number: editedStore.whatsapp_number
+        subdomain: editedStore.subdomain,
+        store_type: editedStore.store_type
       });
 
-      if (updatedStore) {
+      // Update tenant info
+      const updatedTenant = await updateTenant(currentStore.id, {
+        constants: {
+          company_name: editedStore.company_name || '',
+          company_description: editedStore.company_description || '',
+          announcement_text: editedStore.announcement_text || '',
+          hero_title: editedStore.hero_title || '',
+          hero_description: editedStore.hero_description || '',
+          email: editedStore.email || '',
+          phone: editedStore.phone || '',
+          address: editedStore.address || '',
+          whatsapp: editedStore.whatsapp_number || '',
+          social_links: [
+            { name: 'facebook', url: editedStore.facebook_url || '' },
+            { name: 'instagram', url: editedStore.instagram_url || '' }
+          ]
+        }
+      });
+
+      if (updatedStore && updatedTenant) {
         setIsEditing(false);
         setEditedStore(null);
       }
@@ -189,12 +202,18 @@ export default function StoreSettingsPage() {
 
           <Tabs defaultValue="general" className="space-y-8">
             <div className="flex justify-center">
-              <TabsList className="grid w-fit grid-cols-4 bg-white/60 backdrop-blur-xl border-0 shadow-2xl shadow-[#1D1178]/10 rounded-2xl p-2">
+              <TabsList className="grid w-fit grid-cols-5 bg-white/60 backdrop-blur-xl border-0 shadow-2xl shadow-[#1D1178]/10 rounded-2xl p-2">
                 <TabsTrigger 
                   value="general" 
                   className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#1D1178] data-[state=active]:to-[#2D1D92] data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:shadow-[#1D1178]/30 rounded-xl transition-all duration-300 px-6 py-3 font-medium"
                 >
                   General
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="company" 
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#432EB5] data-[state=active]:to-[#5E43D8] data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:shadow-[#432EB5]/30 rounded-xl transition-all duration-300 px-6 py-3 font-medium"
+                >
+                  Company
                 </TabsTrigger>
                 <TabsTrigger 
                   value="appearance" 
@@ -287,6 +306,106 @@ export default function StoreSettingsPage() {
                         {store.store_url}
                       </a>
                       <ExternalLink className="w-5 h-5 text-[#7C5CFC]" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="company">
+              <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-xl overflow-hidden">
+                <CardHeader className="bg-gradient-to-r from-[#432EB5] to-[#5E43D8] text-white rounded-t-2xl p-8 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSIjZmZmZmZmIiBmaWxsLW9wYWNpdHk9IjAuMSI+PHBhdGggZD0iTTIwIDIwYzAtNS41LTQuNS0xMC0xMC0xMHMtMTAgNC41LTEwIDEwIDQuNSAxMCAxMCAxMCAxMC00LjUgMTAtMTB6bTEwIDBjMC01LjUtNC41LTEwLTEwLTEwcy0xMCA0LjUtMTAgMTAgNC41IDEwIDEwIDEwIDEwLTQuNSAxMC0xMHoiLz48L2c+PC9zdmc+')] opacity-30"></div>
+                  <CardTitle className="flex items-center gap-3 text-2xl relative z-10">
+                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                      <Briefcase className="w-6 h-6" />
+                    </div>
+                    Company Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-8 space-y-8">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                      <Label className="text-[#1D1178] font-semibold text-lg">Company Name</Label>
+                      {isEditing ? (
+                        <Input
+                          value={store?.company_name || ''}
+                          onChange={(e) => handleInputChange('company_name', e.target.value)}
+                          className="border-2 border-[#CEBEFE]/50 focus:border-[#432EB5] focus:ring-[#432EB5]/20 rounded-xl h-12 text-lg"
+                          placeholder="Enter company name"
+                        />
+                      ) : (
+                        <div className="p-4 bg-gradient-to-r from-[#CEBEFE]/30 to-[#E7DEFE]/30 rounded-xl border-2 border-[#CEBEFE]/30 backdrop-blur-sm">
+                          <p className="text-[#2D1D92] font-medium text-lg">{store?.company_name || 'Not set'}</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-4">
+                      <Label className="text-[#1D1178] font-semibold text-lg">Company Description</Label>
+                      {isEditing ? (
+                        <Textarea
+                          value={store?.company_description || ''}
+                          onChange={(e) => handleInputChange('company_description', e.target.value)}
+                          className="border-2 border-[#CEBEFE]/50 focus:border-[#432EB5] focus:ring-[#432EB5]/20 min-h-[120px] rounded-xl text-lg"
+                          placeholder="Enter company description"
+                        />
+                      ) : (
+                        <div className="p-6 bg-gradient-to-r from-[#CEBEFE]/30 to-[#E7DEFE]/30 rounded-xl border-2 border-[#CEBEFE]/30 backdrop-blur-sm min-h-[120px]">
+                          <p className="text-[#2D1D92] font-medium text-lg">{store?.company_description || 'Not set'}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <Label className="text-[#1D1178] font-semibold text-lg flex items-center gap-2">
+                      <Megaphone className="w-5 h-5" />
+                      Announcement Text
+                    </Label>
+                    {isEditing ? (
+                      <Input
+                        value={store?.announcement_text || ''}
+                        onChange={(e) => handleInputChange('announcement_text', e.target.value)}
+                        className="border-2 border-[#CEBEFE]/50 focus:border-[#432EB5] focus:ring-[#432EB5]/20 rounded-xl h-12 text-lg"
+                        placeholder="Enter announcement text"
+                      />
+                    ) : (
+                      <div className="p-4 bg-gradient-to-r from-[#CEBEFE]/30 to-[#E7DEFE]/30 rounded-xl border-2 border-[#CEBEFE]/30 backdrop-blur-sm">
+                        <p className="text-[#2D1D92] font-medium text-lg">{store?.announcement_text || 'Not set'}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                      <Label className="text-[#1D1178] font-semibold text-lg">Hero Title</Label>
+                      {isEditing ? (
+                        <Input
+                          value={store?.hero_title || ''}
+                          onChange={(e) => handleInputChange('hero_title', e.target.value)}
+                          className="border-2 border-[#CEBEFE]/50 focus:border-[#432EB5] focus:ring-[#432EB5]/20 rounded-xl h-12 text-lg"
+                          placeholder="Enter hero title"
+                        />
+                      ) : (
+                        <div className="p-4 bg-gradient-to-r from-[#CEBEFE]/30 to-[#E7DEFE]/30 rounded-xl border-2 border-[#CEBEFE]/30 backdrop-blur-sm">
+                          <p className="text-[#2D1D92] font-medium text-lg">{store?.hero_title || 'Not set'}</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-4">
+                      <Label className="text-[#1D1178] font-semibold text-lg">Hero Description</Label>
+                      {isEditing ? (
+                        <Textarea
+                          value={store?.hero_description || ''}
+                          onChange={(e) => handleInputChange('hero_description', e.target.value)}
+                          className="border-2 border-[#CEBEFE]/50 focus:border-[#432EB5] focus:ring-[#432EB5]/20 min-h-[120px] rounded-xl text-lg"
+                          placeholder="Enter hero description"
+                        />
+                      ) : (
+                        <div className="p-6 bg-gradient-to-r from-[#CEBEFE]/30 to-[#E7DEFE]/30 rounded-xl border-2 border-[#CEBEFE]/30 backdrop-blur-sm min-h-[120px]">
+                          <p className="text-[#2D1D92] font-medium text-lg">{store?.hero_description || 'Not set'}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>

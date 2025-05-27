@@ -1,39 +1,54 @@
-import React, { useRef, useState } from "react"
+import React, { useRef, useState, useEffect } from "react"
 import { Bar, BarChart, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid } from "recharts"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { useStatistics } from "@/hooks/useStatistics"
+import { useStorePath } from "@/hooks/useStorePath"
 
-// Sample data matching the chart
-const sampleData = [
-  { month: "Jan", amount: 10500, maxAmount: 15000 },
-  { month: "Feb", amount: 2000, maxAmount: 15000 },
-  { month: "Mar", amount: 12000, maxAmount: 15000 },
-  { month: "Apr", amount: 8000, maxAmount: 15000 },
-  { month: "May", amount: 3000, maxAmount: 15000 },
-  { month: "Jun", amount: 15030, maxAmount: 15000 },
-  { month: "Jul", amount: 5000, maxAmount: 15000 },
-  { month: "Aug", amount: 7500, maxAmount: 15000 },
-  { month: "Sep", amount: 13000, maxAmount: 15000 },
-  { month: "Oct", amount: 7000, maxAmount: 15000 },
-  { month: "Nov", amount: 4000, maxAmount: 15000 },
-  { month: "Dec", amount: 1000, maxAmount: 15000 }
-]
+interface ChartData {
+  name: string;
+  value: number;
+  maxValue: number;
+  index: number;
+}
+
+interface BarPosition {
+  x: number;
+  y: number;
+}
 
 export default function SpendingStatistics() {
-  const [activeBar, setActiveBar] = useState(null)
-  const [activeBarPosition, setActiveBarPosition] = useState(null)
+  const [activeBar, setActiveBar] = useState<number | null>(null)
+  const [activeBarPosition, setActiveBarPosition] = useState<BarPosition | null>(null)
   const [year, setYear] = useState(2024)
-  const chartRef = useRef(null)
+  const [chartData, setChartData] = useState<ChartData[]>([])
+  const chartRef = useRef<HTMLDivElement>(null)
+  const { getSnapshots } = useStatistics()
+  const { storePath } = useStorePath()
 
-  // Format the data for the chart - include background bar
-  const chartData = sampleData.map((item, index) => ({
-    name: item.month,
-    value: item.amount,
-    maxValue: item.maxAmount,
-    index,
-  }))
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const snapshots = await getSnapshots(storePath, 'monthly')
+        // Transform API data to chart format
+        const transformedData = snapshots.map((snapshot, index) => ({
+          name: new Date(snapshot.start_date).toLocaleString('default', { month: 'short' }),
+          value: parseFloat(snapshot.total_sales_amount),
+          maxValue: 15000, // You might want to calculate this based on your data
+          index,
+        }))
+        setChartData(transformedData)
+      } catch (error) {
+        console.error('Failed to fetch statistics:', error)
+      }
+    }
+
+    if (storePath) {
+      fetchData()
+    }
+  }, [getSnapshots, storePath, year])
 
   // Format currency values for Y-axis
-  const formatCurrency = (value) => {
+  const formatCurrency = (value: number): string => {
     if (value >= 1000) {
       return `$${value / 1000}k`
     } else {
@@ -42,11 +57,11 @@ export default function SpendingStatistics() {
   }
 
   // Get the short month name
-  const getMonthName = (month) => {
+  const getMonthName = (month: string): string => {
     return month.substring(0, 3)
   }
 
-  const onYearChange = (newYear) => {
+  const onYearChange = (newYear: number): void => {
     setYear(newYear)
   }
 
@@ -112,7 +127,7 @@ export default function SpendingStatistics() {
               background={{ fill: '#e5e7eb', radius: [8, 8, 0, 0] }}
               onMouseEnter={(data, index, event) => {
                 setActiveBar(index)
-                if (chartRef.current && event && event.target) {
+                if (chartRef.current && event && event.target instanceof Element) {
                   const rect = event.target.getBoundingClientRect()
                   const chartRect = chartRef.current.getBoundingClientRect()
                   setActiveBarPosition({

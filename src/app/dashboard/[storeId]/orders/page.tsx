@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronLeft, ChevronRight, Pencil } from "lucide-react"
+import { ChevronLeft, ChevronRight, Pencil, Download } from "lucide-react"
 import { useEffect, useState } from "react"
 import Image from 'next/image'
 import { useOrders } from "@/hooks/useOrders"
@@ -55,6 +55,47 @@ export default function Orders() {
     total: "",
     status: "",
   })
+
+  // Add download CSV function
+  const downloadCSV = () => {
+    // Create CSV header
+    const headers = [
+      'Customer Name',
+      'Email',
+      'Phone',
+      'Address',
+      'Wilaya',
+      'Order Date',
+      'Total Amount',
+      'Status'
+    ].join(',');
+
+    // Create CSV rows
+    const rows = orders.map(order => [
+      order.customer_name,
+      order.customer_email,
+      order.customer_phone,
+      order.address,
+      order.wilaya,
+      new Date(order.created_at).toLocaleDateString(),
+      order.total_amount,
+      order.status
+    ].map(field => `"${field}"`).join(','));
+
+    // Combine header and rows
+    const csvContent = [headers, ...rows].join('\n');
+
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `orders_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // Fetch statistics from API
   useEffect(() => {
@@ -345,6 +386,13 @@ export default function Orders() {
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
         <div className="flex items-center justify-between p-4 md:p-6">
           <h2 className="text-base md:text-lg font-medium text-[#1a202c]">Customer orders</h2>
+          <button
+            onClick={downloadCSV}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#1e3a8a] rounded-md hover:bg-[#1e3a8a]/90 transition-colors duration-200"
+          >
+            <Download className="h-4 w-4" />
+            Download CSV
+          </button>
         </div>
 
         <div className="overflow-x-auto">
