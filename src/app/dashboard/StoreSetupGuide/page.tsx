@@ -5,10 +5,15 @@ import { Button } from "@/components/ui/button";
 import SimpleButton from "@/components/common/SimpleButton";
 import { CompleteProfile } from "@/components/dashboard/StoreSetupGuide/CompleteProfile";
 import { CreateStore } from "@/components/dashboard/StoreSetupGuide/CreateStore";
+import { CategoryDialog } from "@/components/dashboard/StoreSetupGuide/CategoryDialog";
+
+type SectionKey = 'setup' | 'profile' | 'name' | 'categories' | 'product';
+type StepKey = 'profile' | 'storeName' | 'categories' | 'products';
+type StepId = 'profile' | 'name' | 'categories' | 'product';
 
 export default function EcommerceSetupGuide() {
   const [showBanner, setShowBanner] = useState(true);
-  const [expandedSections, setExpandedSections] = useState({
+  const [expandedSections, setExpandedSections] = useState<Record<SectionKey, boolean>>({
     setup: true,
     profile: true,
     name: false,
@@ -17,18 +22,20 @@ export default function EcommerceSetupGuide() {
   });
   const [showProfileForm, setShowProfileForm] = useState(false);
   const [showStoreForm, setShowStoreForm] = useState(false);
-  const [completedSteps, setCompletedSteps] = useState({
+  const [completedSteps, setCompletedSteps] = useState<Record<StepKey, boolean>>({
     profile: true,
     storeName: false,
     categories: false,
     products: false,
   });
+  const [showCategoryDialog, setShowCategoryDialog] = useState(false);
+  const [categories, setCategories] = useState<Array<{ name: string; description?: string }>>([]);
 
   const toast = {
-    error: (message) => alert(message)
+    error: (message: string) => alert(message)
   };
 
-  const toggleSection = (section) => {
+  const toggleSection = (section: SectionKey) => {
     if (section === "name" && !completedSteps.profile) {
       toast.error("Please complete your profile first");
       return;
@@ -74,17 +81,29 @@ export default function EcommerceSetupGuide() {
     }));
   };
 
-  const router = {
-    push: (path) => console.log(`Navigate to: ${path}`)
+  const handleCategorySubmit = (category: { name: string; description?: string }) => {
+    setCategories(prev => [...prev, category]);
+    setCompletedSteps(prev => ({
+      ...prev,
+      categories: true
+    }));
+    setShowCategoryDialog(false);
+    setExpandedSections(prev => ({
+      ...prev,
+      product: true,
+      categories: false
+    }));
   };
 
-  const getStepStatus = (step) => {
-    // if (step === "profile" && completedSteps.profile) return "completed";
+  const router = {
+    push: (path: string) => console.log(`Navigate to: ${path}`)
+  };
+
+  const getStepStatus = (step: StepId): "completed" | "current" | "locked" => {
     if (step === "name" && completedSteps.storeName) return "completed";
     if (step === "categories" && completedSteps.categories) return "completed";
     if (step === "product" && completedSteps.products) return "completed";
     
-    // if (step === "profile") return "current";
     if (step === "name" && completedSteps.profile) return "current";
     if (step === "categories" && completedSteps.storeName) return "current";
     if (step === "product" && completedSteps.categories) return "current";
@@ -97,7 +116,7 @@ export default function EcommerceSetupGuide() {
 
   const steps = [
     {
-      id: 'profile',
+      id: 'profile' as StepId,
       icon: User,
       title: 'Complete Personal Information',
       description: 'Set up your business profile with contact information and business details',
@@ -107,8 +126,8 @@ export default function EcommerceSetupGuide() {
       action: () => setShowProfileForm(true)
     },
     {
-      id: 'name',
-      key: 'storeName',
+      id: 'name' as StepId,
+      key: 'storeName' as StepKey,
       icon: Store,
       title: 'Create Your Store',
       description: 'Design and customize your online store with your brand colors, logo, and domain',
@@ -118,19 +137,20 @@ export default function EcommerceSetupGuide() {
       action: () => setShowStoreForm(true)
     },
     {
-      id: 'categories',
+      id: 'categories' as StepId,
+      key: 'categories' as StepKey,
       icon: Tag,
       title: 'Set Up Store Categories',
       description: 'Organize your products by creating categories and subcategories for better navigation',
       expandedContent: 'Create categories to help customers find your products easily. Add descriptions and images to make your categories more appealing and informative.',
-      buttonText: 'Set Up Categories',
+      buttonText: 'Add Category',
       completedText: 'Categories Created',
-      action: () => router.push("/dashboard/categories"),
+      action: () => setShowCategoryDialog(true),
       hasExample: true
     },
     {
-      id: 'product',
-      key: 'products',
+      id: 'product' as StepId,
+      key: 'products' as StepKey,
       icon: Package,
       title: 'Add Products to Your Store',
       description: 'Add products with high-quality photos, detailed descriptions, pricing, and inventory settings',
@@ -198,7 +218,7 @@ export default function EcommerceSetupGuide() {
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
             Complete these simple steps to set up your store and start selling products online. 
-            We'll guide you through the entire process with our intuitive setup wizard.
+            We&apos;ll guide you through the entire process with our intuitive setup wizard.
           </p>
         </div>
 
@@ -409,7 +429,7 @@ export default function EcommerceSetupGuide() {
                   🎉 Congratulations! Your store is ready
                 </h2>
                 <p className="text-xl text-green-700 mb-8 max-w-2xl mx-auto leading-relaxed">
-                  You've successfully completed all the necessary steps to launch your online store. You're now ready to start selling and growing your business.
+                  You&apos;ve successfully completed all the necessary steps to launch your online store. You&apos;re now ready to start selling and growing your business.
                 </p>
                 <Button
                   onClick={() => router.push("/dashboard")}
@@ -447,6 +467,12 @@ export default function EcommerceSetupGuide() {
           </div>
         </div>
       </div>
+
+      <CategoryDialog
+        isOpen={showCategoryDialog}
+        onClose={() => setShowCategoryDialog(false)}
+        onSubmit={handleCategorySubmit}
+      />
     </div>
   );
 }

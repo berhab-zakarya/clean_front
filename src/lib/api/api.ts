@@ -878,6 +878,32 @@ export const productsAPI = {
         throw new Error('Store URL not found');
       }
 
+      // Validate variants before sending
+      if (!Array.isArray(variants) || variants.length === 0) {
+        throw new Error('No variants provided');
+      }
+
+      // Validate each variant
+      variants.forEach((variant, index) => {
+        if (!variant.sku) {
+          throw new Error(`Variant at index ${index} is missing SKU`);
+        }
+        if (typeof variant.stock_quantity !== 'number' || variant.stock_quantity < 0) {
+          throw new Error(`Variant at index ${index} has invalid stock quantity`);
+        }
+        if (!Array.isArray(variant.attributes) || variant.attributes.length === 0) {
+          throw new Error(`Variant at index ${index} has no attributes`);
+        }
+        variant.attributes.forEach((attr, attrIndex) => {
+          if (typeof attr.attribute_id !== 'number' || attr.attribute_id <= 0) {
+            throw new Error(`Variant at index ${index} has invalid attribute_id at position ${attrIndex}`);
+          }
+          if (typeof attr.value_id !== 'number' || attr.value_id <= 0) {
+            throw new Error(`Variant at index ${index} has invalid value_id at position ${attrIndex}`);
+          }
+        });
+      });
+
       // Create a new axios instance with store URL as base
       const storeApi = axios.create({
         baseURL: ensurePort8000(store.store_url),
@@ -887,6 +913,8 @@ export const productsAPI = {
         }
       });
 
+      console.log('Sending variants data:', { variants });
+
       const response = await storeApi.post<Product>(
         `/api/v1/products/${productId}/add_variants/`,
         { variants }
@@ -895,13 +923,29 @@ export const productsAPI = {
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const apiError = error.response?.data as ProductApiError;
+        console.error('Variant API Error:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          config: error.config
+        });
+        
+        // Handle validation errors
+        if (error.response?.status === 400) {
+          const errorMessage = apiError?.detail || 
+            (apiError?.errors && Object.entries(apiError.errors)
+              .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+              .join('; ')) ||
+            'Invalid variant data';
+          throw new Error(errorMessage);
+        }
+        
         throw new Error(
           apiError?.message || 
           apiError?.detail || 
           'Failed to add product variants'
         );
       }
-      throw new Error('Network error while adding product variants');
+      throw error; // Re-throw non-Axios errors
     }
   },
   deleteProduct: async (productId: number, store: Store): Promise<void> => {
@@ -1378,6 +1422,38 @@ export const ordersAPI = {
         );
       }
       throw new Error('Network error while fetching orders');
+    }
+  },
+
+  updateOrderStatus: async (store: Store, orderId: number, status: string): Promise<Order> => {
+    try {
+      if (!store?.store_url) {
+        throw new Error('Store URL not found');
+      }
+
+      // Create a new axios instance with store URL as base
+      const storeApi = axios.create({
+        baseURL: ensurePort8000(store.store_url),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('access_token')}`
+        }
+      });
+
+      const response = await storeApi.patch<Order>(`/api/v1/orders/${orderId}/update_status/`, {
+        status
+      });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const apiError = error.response?.data as OrderApiError;
+        throw new Error(
+          apiError?.detail || 
+          apiError?.message || 
+          'Failed to update order status'
+        );
+      }
+      throw new Error('Network error while updating order status');
     }
   }
 };

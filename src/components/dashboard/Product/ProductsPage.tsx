@@ -619,7 +619,7 @@ export default function ProductsPage() {
                     checked={selectedProducts.length === sortedProducts.length}
                     onCheckedChange={handleSelectAll}
                     color="primary"
-                    className="rounded-none"
+                    className="rounded-[8px] w-[24px] h-[24px] stroke-black"
                   />
                 </th>
                 <th

@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Alert } from "@/components/ui/alert"
-import { AlertCircle, CheckCircle2 Key, Smartphone, Monitor, Lock } from "lucide-react"
+import { AlertCircle, CheckCircle2, Key, Smartphone, Monitor, Lock } from "lucide-react"
 
 export default function SecuritySettings() {
   const { isLoading, changePassword } = usePassword();

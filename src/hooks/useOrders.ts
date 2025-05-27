@@ -54,6 +54,38 @@ export const useOrders = () => {
     }
   };
 
+  const updateOrderStatus = async (orderId: number, status: string) => {
+    if (!currentStore) {
+      setError('No store selected');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const updatedOrder = await ordersAPI.updateOrderStatus(currentStore, orderId, status);
+      toast({
+        title: "Success",
+        description: `Order status updated to ${status}`,
+      });
+      // Refresh orders list after status update
+      await fetchOrders();
+      return updatedOrder;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update order status';
+      setError(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (currentStore) {
       fetchOrders();
@@ -64,6 +96,7 @@ export const useOrders = () => {
     orders,
     loading,
     error,
-    refetch: fetchOrders
+    refetch: fetchOrders,
+    updateOrderStatus
   };
 }; 

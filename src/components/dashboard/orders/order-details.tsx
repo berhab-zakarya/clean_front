@@ -1,6 +1,29 @@
 import { ChevronLeft, ChevronRight, MoreHorizontal, ChevronDown } from "lucide-react";
+import { useOrders } from "@/hooks/useOrders";
 
 export function OrderDetails() {
+  const { orders, loading, error } = useOrders();
+
+  if (loading) {
+    return (
+      <div className="w-full bg-white rounded-xl shadow-sm p-8">
+        <div className="flex justify-center items-center h-40">
+          <div className="text-blue-900">Loading orders...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full bg-white rounded-xl shadow-sm p-8">
+        <div className="flex justify-center items-center h-40">
+          <div className="text-red-500">Error: {error}</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full bg-white rounded-xl shadow-sm">
       <div className="p-8">
@@ -52,87 +75,47 @@ export function OrderDetails() {
 
         {/* Table Rows */}
         <div className="bg-white">
-          {/* Row 1 */}
-          <div className="grid grid-cols-5 gap-6 px-6 py-5 border-b border-gray-100 hover:bg-gray-50 transition-colors">
-            <div className="text-blue-900 font-medium text-sm">
-              Cocorella Out
+          {orders.map((order) => (
+            <div key={order.id} className="grid grid-cols-5 gap-6 px-6 py-5 border-b border-gray-100 hover:bg-gray-50 transition-colors">
+              <div className="text-blue-900 font-medium text-sm">
+                {order.customer_name}
+              </div>
+              <div className="text-blue-900 text-sm">
+                {order.address}
+              </div>
+              <div className="text-blue-900 text-sm">
+                {new Date(order.created_at).toLocaleDateString()} -<br />
+                {new Date(order.created_at).toLocaleTimeString()}
+              </div>
+              <div className="text-blue-900 font-semibold text-sm">
+                {order.total_amount} DZD
+              </div>
+              <div>
+                <span className={`inline-flex items-center px-4 py-1.5 text-white text-xs font-medium rounded-full ${
+                  order.status === 'delivered' ? 'bg-green-500' :
+                  order.status === 'pending' ? 'bg-orange-500' :
+                  order.status === 'processing' ? 'bg-blue-500' :
+                  order.status === 'shipped' ? 'bg-purple-500' :
+                  'bg-red-500'
+                }`}>
+                  {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                </span>
+              </div>
             </div>
-            <div className="text-blue-900 text-sm">
-              Les dahlias,<br />
-              Tlemcen, Algérie
-            </div>
-            <div className="text-blue-900 text-sm">
-              12.09.2019 -<br />
-              12:53 PM
-            </div>
-            <div className="text-blue-900 font-semibold text-sm">
-              34,295 DZD
-            </div>
-            <div>
-              <span className="inline-flex items-center px-4 py-1.5 bg-green-500 text-white text-xs font-medium rounded-full">
-                Delivered
-              </span>
-            </div>
-          </div>
-
-          {/* Row 2 */}
-          <div className="grid grid-cols-5 gap-6 px-6 py-5 border-b border-gray-100 hover:bg-gray-50 transition-colors">
-            <div className="text-blue-900 font-medium text-sm">
-              Cocorella Out
-            </div>
-            <div className="text-blue-900 text-sm">
-              Les dahlias,<br />
-              Tlemcen, Algérie
-            </div>
-            <div className="text-blue-900 text-sm">
-              12.09.2019 -<br />
-              12:53 PM
-            </div>
-            <div className="text-blue-900 font-semibold text-sm">
-              34,295 DZD
-            </div>
-            <div>
-              <span className="inline-flex items-center px-4 py-1.5 bg-orange-500 text-white text-xs font-medium rounded-full">
-                Pending
-              </span>
-            </div>
-          </div>
-
-          {/* Row 3 */}
-          <div className="grid grid-cols-5 gap-6 px-6 py-5 border-b border-gray-100 hover:bg-gray-50 transition-colors">
-            <div className="text-blue-900 font-medium text-sm">
-              Cocorella Out
-            </div>
-            <div className="text-blue-900 text-sm">
-              Les dahlias,<br />
-              Tlemcen, Algérie
-            </div>
-            <div className="text-blue-900 text-sm">
-              12.09.2019 -<br />
-              12:53 PM
-            </div>
-            <div className="text-blue-900 font-semibold text-sm">
-              34,295 DZD
-            </div>
-            <div>
-              <span className="inline-flex items-center px-4 py-1.5 bg-red-500 text-white text-xs font-medium rounded-full">
-                Rejected
-              </span>
-            </div>
-          </div>
+          ))}
         </div>
 
         {/* Pagination */}
         <div className="flex justify-between items-center mt-8 px-6">
           <div className="text-blue-900 font-medium text-sm">
-            4 Items per page
+            {orders.length} Items
           </div>
           <div className="flex items-center gap-3">
             <button className="w-9 h-9 flex items-center justify-center border border-blue-900 rounded-md text-blue-900 hover:bg-blue-50 transition-colors">
               <ChevronLeft className="h-4 w-4" />
             </button>
             <span className="text-blue-900 font-medium text-sm px-2">
-              1 of 42
+              1 of {Math.ceil(orders.length / 4)}
             </span>
             <button className="w-9 h-9 flex items-center justify-center border border-blue-900 rounded-md text-blue-900 hover:bg-blue-50 transition-colors">
               <ChevronRight className="h-4 w-4" />

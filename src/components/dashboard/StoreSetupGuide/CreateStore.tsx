@@ -181,33 +181,28 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
 
         // Check for successful deployment - updated conditions
         if (msg.includes("Pure store deployment successful") || 
-    msg.includes("deployment successful") ||
-    msg.includes("Store deployed successfully") ||
-    msg.includes("ready") ||
-    msg.toLowerCase().includes("ready") ||  // Case-insensitive ready detection
-    status === "success" || 
-    status === "deployed" ||
-    msg.includes("deployed successfully")) {
-
+            msg.includes("deployment successful") ||
+            msg.includes("Store deployed successfully") ||
+            msg.includes("ready") ||
+            msg.toLowerCase().includes("ready") ||  // Case-insensitive ready detection
+            status === "success" || 
+            status === "deployed" ||
+            msg.includes("deployed successfully")) {
           
           clearTimeout(deploymentTimeout)
           setDeploymentComplete(true)
           
           setTerminalLines(prev => [...prev, {
-  type: "span" as const,
-  text: "🎉 Store deployed successfully!",
-  className: "text-emerald-400 font-bold text-lg",
-}, {
-  type: "span" as const,
-  text: "🚀 Terminal Ready",  // Added Terminal Ready text
-  className: "text-cyan-400 font-bold text-lg",
-}])
+            type: "span" as const,
+            text: "🎉 Store deployed successfully!",
+            className: "text-emerald-400 font-bold text-lg",
+          }, {
+            type: "span" as const,
+            text: "🚀 Terminal Ready",  // Added Terminal Ready text
+            className: "text-cyan-400 font-bold text-lg",
+          }])
           
-          // Generate store URL if not provided
-          if (!url && formData.subdomain) {
-            url = `https://${formData.subdomain}.algecom.com`
-          }
-          
+          // Use the store URL from the response
           if (url) {
             // Validate and clean URL
             let cleanUrl = url.trim()
@@ -226,6 +221,10 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
             setTimeout(() => {
               window.open(cleanUrl, "_blank", "noopener,noreferrer")
               toast.success("Your store is opening automatically!")
+              // Add delay before calling onComplete to ensure store URL is opened first
+              setTimeout(() => {
+                onComplete()
+              }, 2000)
             }, 2000)
           }
           
@@ -379,11 +378,10 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
         
         if (response.id) {
           setStoreUrl(response.store_url);
-  setStoreId(response.id); // Store the ID for navigation
-  setTimeout(() => {
-    handleWebSocket(response.id)
-  }, 1000)
-
+          setStoreId(response.id); // Store the ID for navigation
+          setTimeout(() => {
+            handleWebSocket(response.id)
+          }, 1000)
         } else {
           throw new Error("No store ID received from server")
         }
@@ -409,8 +407,12 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
     if (storeUrl) {
       window.open(storeUrl, "_blank", "noopener,noreferrer")
       toast.success("Opening your store in a new tab!")
+      // Add delay before calling onComplete to ensure store URL is opened first
+      setTimeout(() => {
+        onComplete()
+      }, 2000)
     }
-  }, [storeUrl])
+  }, [storeUrl, onComplete])
 
   // Cleanup WebSocket on unmount
   useEffect(() => {

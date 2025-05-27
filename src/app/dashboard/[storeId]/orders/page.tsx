@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, Pencil } from "lucide-react"
 import { useEffect, useState } from "react"
 import Image from 'next/image'
 import { useOrders } from "@/hooks/useOrders"
@@ -31,7 +31,8 @@ interface SortConfig {
 }
 
 export default function Orders() {
-  const { orders, loading, error } = useOrders();
+  const { orders, loading, error, updateOrderStatus } = useOrders();
+  const [openActionMenu, setOpenActionMenu] = useState<number | null>(null);
 
   // State for statistics
   const [stats, setStats] = useState<Statistics | null>(null)
@@ -181,6 +182,29 @@ export default function Orders() {
       setCurrentPage(currentPage - 1)
     }
   }
+
+  // Add handleAcceptOrder function
+  const handleAcceptOrder = async (orderId: number) => {
+    try {
+      await updateOrderStatus(orderId, 'processing');
+    } catch (error) {
+      console.error('Failed to accept order:', error);
+    }
+  };
+
+  // Add this function to handle clicking outside the menu
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (openActionMenu !== null) {
+        setOpenActionMenu(null);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [openActionMenu]);
 
   if (error) {
     return (
@@ -534,6 +558,9 @@ export default function Orders() {
                     </button>
                   </div>
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-[#828282] uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -558,6 +585,9 @@ export default function Orders() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="h-6 bg-gray-200 rounded w-20"></div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="h-6 bg-gray-200 rounded w-20"></div>
@@ -600,6 +630,99 @@ export default function Orders() {
                           {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                         </span>
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap relative">
+                        {(order.status !== 'delivered' && order.status !== 'cancelled') && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenActionMenu(openActionMenu === order.id ? null : order.id);
+                            }}
+                            className="p-2 text-gray-600 hover:text-[#1e3a8a] rounded-full hover:bg-gray-100"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                        )}
+                        
+                        {openActionMenu === order.id && (
+                          <div 
+                            className="absolute right-0 mt-2 w-56 rounded-lg shadow-xl bg-white ring-1 ring-black ring-opacity-5 z-10 overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="py-2">
+                              <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100">
+                                Order Actions
+                              </div>
+                              <div className="mt-1">
+                                {order.status === 'pending' && (
+                                  <button
+                                    onClick={() => {
+                                      handleAcceptOrder(order.id);
+                                      setOpenActionMenu(null);
+                                    }}
+                                    className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors duration-150"
+                                  >
+                                    <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                      </svg>
+                                    </div>
+                                    <span>Accept Order</span>
+                                  </button>
+                                )}
+                                {order.status === 'processing' && (
+                                  <button
+                                    onClick={() => {
+                                      updateOrderStatus(order.id, 'shipped');
+                                      setOpenActionMenu(null);
+                                    }}
+                                    className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors duration-150"
+                                  >
+                                    <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+                                        <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1v-1h3.05a2.5 2.5 0 014.9 0H19a1 1 0 001-1v-6a1 1 0 00-.293-.707l-2-2A1 1 0 0017 4H3z" />
+                                      </svg>
+                                    </div>
+                                    <span>Mark as Shipped</span>
+                                  </button>
+                                )}
+                                {order.status === 'shipped' && (
+                                  <button
+                                    onClick={() => {
+                                      updateOrderStatus(order.id, 'delivered');
+                                      setOpenActionMenu(null);
+                                    }}
+                                    className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors duration-150"
+                                  >
+                                    <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center">
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                      </svg>
+                                    </div>
+                                    <span>Mark as Delivered</span>
+                                  </button>
+                                )}
+                                {(order.status === 'pending' || order.status === 'processing' || order.status === 'shipped') && (
+                                  <button
+                                    onClick={() => {
+                                      updateOrderStatus(order.id, 'cancelled');
+                                      setOpenActionMenu(null);
+                                    }}
+                                    className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors duration-150 border-t border-gray-100"
+                                  >
+                                    <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center">
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                      </svg>
+                                    </div>
+                                    <span>Cancel Order</span>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </td>
                     </tr>
                   ))}
             </tbody>
@@ -633,5 +756,5 @@ export default function Orders() {
         )}
       </div>
     </main>
-  )
+  );
 }

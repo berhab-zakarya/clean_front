@@ -123,12 +123,7 @@ export default function PersonalAccount() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">
       <div className="max-w-4xl mx-auto space-y-8">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-blue-800 via-indigo-700 to-blue-900 bg-clip-text text-transparent">Personal Account</h1>
-            <p className="text-slate-600">Manage your personal information and preferences</p>
-          </div>
-        </div>
+       
 
         <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
           <CardHeader className="bg-gradient-to-r from-blue-700 via-indigo-600 to-blue-800 text-white rounded-t-lg">

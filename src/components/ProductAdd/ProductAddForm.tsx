@@ -24,7 +24,7 @@ import ProductDescriptionEditor from "./ProductDescriptionEditor";
 import { useProduct } from "@/hooks/useProduct";
 import { useStore } from "@/hooks/useStore";
 import { useRouter } from 'next/navigation';
-import { toast } from "react-hot-toast";
+import { useToast } from "@/hooks/use-toast";
 import type { CreateProductRequest, ProductVariant } from "@/lib/types/product";
 import { useStorePath } from "@/hooks/useStorePath";
 
@@ -57,6 +57,7 @@ export default function ProductAddForm() {
   const { createProduct, addProductVariants } = useProduct();
   const { storeId, loading: storeLoading } = useStore();
   const { currentStoreId } = useStorePath();
+  const { toast } = useToast();
 
   const [productData, setProductData] = useState({
     title: "",
@@ -146,7 +147,11 @@ export default function ProductAddForm() {
       setIsSubmitting(true);
       
       if (!storeId || !currentStoreId) {
-        toast.error("Store information is missing");
+        toast({
+          title: "Error",
+          description: "Store information is missing",
+          variant: "destructive"
+        });
         return;
       }
 
@@ -187,18 +192,32 @@ export default function ProductAddForm() {
       if (variants.length > 0) {
         try {
           await addProductVariants(result.id, variants);
-          toast.success("Product variants added successfully");
+          toast({
+            title: "Success",
+            description: "Product variants added successfully"
+          });
         } catch (error) {
           console.error("Error adding variants:", error);
-          toast.error("Product created but failed to add variants");
+          toast({
+            title: "Error",
+            description: "Product created but failed to add variants",
+            variant: "destructive"
+          });
         }
       }
 
-      toast.success("Product created successfully!");
-      router.push('/dashboard/products');
+      toast({
+        title: "Success",
+        description: "Product created successfully!"
+      });
+      router.push(`/dashboard/${currentStoreId}/products`);
     } catch (error) {
       console.error("Product creation error:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to add product");
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to add product",
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -247,39 +266,36 @@ export default function ProductAddForm() {
     }
   };
 
-  const handleAddOption = (option: { id: string; name: string; values: string[] }) => {
-    // Convert option to ExtendedProductVariant format
-    const newVariants = option.values.map(value => {
-      // Use predefined attribute IDs based on option name
-      const attributeId = option.name.toLowerCase() === 'size' ? 1 : 2;
-      const valueId = option.name.toLowerCase() === 'size' ? 
-        (value.toLowerCase() === 's' ? 1 : 
-         value.toLowerCase() === 'm' ? 2 : 
-         value.toLowerCase() === 'l' ? 3 : 4) :
-        (value.toLowerCase() === 'white' ? 4 : 
-         value.toLowerCase() === 'black' ? 5 : 
-         value.toLowerCase() === 'red' ? 6 : 7);
+  const handleAddOption = (option: { id: string; name: string; values: string[]; attributeId?: number; valueIds?: number[] }) => {
+    // Convert option to variant format expected by the API
+    const newVariants = option.values.map((value, index) => {
+      // Use the attribute and value IDs from the option if available
+      const attributeId = option.attributeId;
+      const valueId = option.valueIds?.[index];
+
+      if (!attributeId || !valueId) {
+        console.error('Missing attribute or value IDs:', { option, value, index });
+        return null;
+      }
 
       // Format SKU based on the option type
-      const skuPrefix = option.name.toLowerCase() === 'size' ? 
-        `${productData.sku}-${value.toUpperCase()}` :
-        `${productData.sku}-${value.toUpperCase()}`;
+      const skuPrefix = `${productData.sku}-${value.toUpperCase()}`;
 
       return {
-        id: Math.random().toString(36).substr(2, 9),
         sku: skuPrefix,
         price_adjustment: "0.00",
         stock_quantity: productData.inventory_quantity || 0,
-        attributes: [
-          {
-            attribute_id: attributeId,
-            value_id: valueId
-          }
-        ],
-        attribute_values: [],
-        final_price: productData.price
-      } as ExtendedProductVariant;
-    });
+        attributes: [{
+          attribute_id: attributeId,
+          value_id: valueId
+        }]
+      };
+    }).filter((variant): variant is { 
+      sku: string; 
+      price_adjustment: string; 
+      stock_quantity: number; 
+      attributes: Array<{ attribute_id: number; value_id: number; }>; 
+    } => variant !== null);
 
     // Validate variants before adding
     const validVariants = newVariants.filter(variant => {
@@ -288,17 +304,22 @@ export default function ProductAddForm() {
         variant.stock_quantity >= 0 &&
         variant.attributes.length > 0 &&
         variant.attributes.every(attr => 
-          typeof attr.attribute_id === 'number' && 
-          typeof attr.value_id === 'number'
+          attr.attribute_id > 0 && 
+          attr.value_id > 0
         )
       );
     });
 
     if (validVariants.length === 0) {
-      toast.error("Failed to create valid variants");
+      toast({
+        title: "Error",
+        description: "Failed to create valid variants",
+        variant: "destructive"
+      });
       return;
     }
 
+    console.log('Adding variants:', validVariants);
     setVariants(prev => [...prev, ...validVariants]);
   };
 
