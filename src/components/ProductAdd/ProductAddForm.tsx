@@ -27,6 +27,8 @@ import { useRouter } from 'next/navigation';
 import { useToast } from "@/hooks/use-toast";
 import type { CreateProductRequest, ProductVariant } from "@/lib/types/product";
 import { useStorePath } from "@/hooks/useStorePath";
+import type { Category } from "@/lib/types/category";
+import { storesAPI } from '@/lib/api/api';
 
 
 // Fixed type definition for media files
@@ -55,9 +57,13 @@ export default function ProductAddForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const { createProduct, addProductVariants } = useProduct();
-  const { storeId, loading: storeLoading } = useStore();
   const { currentStoreId } = useStorePath();
+  const { loading: storeLoading, userStore, getCategories } = useStore();
   const { toast } = useToast();
+
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [hasFetchedCategories, setHasFetchedCategories] = useState(false);
 
   const [productData, setProductData] = useState({
     title: "",
@@ -94,6 +100,7 @@ export default function ProductAddForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showExistingDialog, setShowExistingDialog] = useState(false);
   const [hovering, setHovering] = useState(false);
+  const [showLoadingDialog, setShowLoadingDialog] = useState(false);
   const [variants, setVariants] = useState<ExtendedProductVariant[]>([]);
   const [faqs, setFaqs] = useState<FAQ[]>([]);
 
@@ -131,22 +138,46 @@ export default function ProductAddForm() {
   };
 
   useEffect(() => {
-    if (storeId) {
-      setProductData(prev => ({
-        ...prev,
-        tenant_id: storeId
-      }));
-      console.log('Updated tenant_id:', storeId);
-    }
-  }, [storeId]);
+    const fetchCategories = async () => {
+      if (!currentStoreId || hasFetchedCategories) {
+        return;
+      }
+
+      try {
+        setLoadingCategories(true);
+        // Get the current store using the store ID
+        const store = await storesAPI.getCurrentStore(currentStoreId);
+        if (!store) {
+          throw new Error('Store not found');
+        }
+        console.log('Fetching categories for store:', store);
+        const fetchedCategories = await getCategories(store);
+        console.log('Fetched categories:', fetchedCategories);
+        setCategories(fetchedCategories);
+        setHasFetchedCategories(true);
+      } catch (error) {
+        console.error('Failed to fetch categories:', error);
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to load categories",
+          variant: "destructive"
+        });
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+
+    fetchCategories();
+  }, [currentStoreId, getCategories, toast, hasFetchedCategories]);
 
   const handleSubmit = async () => {
     if (isSubmitting) return;
 
     try {
       setIsSubmitting(true);
+      setShowLoadingDialog(true);
       
-      if (!storeId || !currentStoreId) {
+      if (!currentStoreId || !userStore) {
         toast({
           title: "Error",
           description: "Store information is missing",
@@ -210,7 +241,7 @@ export default function ProductAddForm() {
         title: "Success",
         description: "Product created successfully!"
       });
-      router.push(`/dashboard/${currentStoreId}/products`);
+      router.push(`/dashboard/${currentStoreId}/product`);
     } catch (error) {
       console.error("Product creation error:", error);
       toast({
@@ -220,6 +251,7 @@ export default function ProductAddForm() {
       });
     } finally {
       setIsSubmitting(false);
+      setShowLoadingDialog(false);
     }
   };
 
@@ -344,13 +376,8 @@ export default function ProductAddForm() {
     setFaqs(newFaqs);
   };
 
-  if (storeLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-[#1E3A8A]">Loading store information...</div>
-      </div>
-    );
-  }
+
+
 
   return (
     <div className="bg-gray-50 min-h-screen p-4 md:p-8">
@@ -677,7 +704,7 @@ export default function ProductAddForm() {
                 }}
               />
             
-              <ShippingComponent />
+             
            
               <VariantsComponent 
                 onAddOption={handleAddOption}
@@ -856,26 +883,8 @@ export default function ProductAddForm() {
                 </div>
               </div>
 
-              {/* Markets */}
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-2">Markets</h3>
-                <div className="space-y-2">
-                  <Checkbox
-                    id="international"
-                    checked={
-                      productData.markets.international && productData.markets.us
-                    }
-                    onCheckedChange={() => {
-                      handleMarketChange("international");
-                      handleMarketChange("us");
-                    }}
-                    color="secondary"
-                    className="rounded h-5 w-5"
-                    labelClassName="text-base text-gray-700"
-                    label="International and United States"
-                  />
-                </div>
-              </div>
+             
+             
             </div>
 
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -894,19 +903,22 @@ export default function ProductAddForm() {
                   >
                     Category
                   </label>
-                  <SimpleInput
-                    type="text"
+                  <select
                     id="category"
                     name="category"
                     value={productData.category}
                     onChange={handleInputChange}
-                    width={316}
-                    height={43}
-                    className="text-[16px]"
-                  />
-                  <p className="font-[500] text-[16px] text-[var(--primary-900)] mt-1">
-                    Determines US tax rates
-                  </p>
+                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    disabled={loadingCategories}
+                  >
+                    <option value="">Select a category</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                
                 </div>
 
                 <div>
@@ -928,43 +940,9 @@ export default function ProductAddForm() {
                   />
                 </div>
 
-                <div>
-                  <label
-                    htmlFor="vendor"
-                    className="block text-black text-[16px] font-[500] mb-1"
-                  >
-                    Vendor
-                  </label>
-                  <SimpleInput
-                    type="text"
-                    id="vendor"
-                    name="vendor"
-                    value={productData.vendor}
-                    onChange={handleInputChange}
-                    width={316}
-                    height={43}
-                    className="text-[16px]"
-                  />
-                </div>
+              
 
-                <div>
-                  <label
-                    htmlFor="collections"
-                    className="block text-black text-[16px] font-[500] mb-1"
-                  >
-                    Collections
-                  </label>
-                  <SimpleInput
-                    type="text"
-                    id="collections"
-                    name="collections"
-                    value={productData.collections}
-                    onChange={handleInputChange}
-                    width={316}
-                    height={43}
-                    className="text-[16px]"
-                  />
-                </div>
+                
 
                 <div>
                   <label
@@ -1032,6 +1010,26 @@ export default function ProductAddForm() {
           </div>
           <div className="mt-4">
             <p className="text-gray-500">No existing media found.</p>
+          </div>
+        </div>
+      </Dialog>
+      {/* Loading Dialog */}
+      <Dialog
+        open={showLoadingDialog}
+        onClose={() => {}}
+        className="fixed z-50 inset-0 flex items-center justify-center"
+      >
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
+          aria-hidden="true"
+        />
+        <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+          <div className="flex flex-col items-center justify-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1E3A8A]"></div>
+            <h2 className="text-xl font-semibold text-gray-900">Creating Your Product</h2>
+            <p className="text-gray-500 text-center">
+              Please wait while we create your product. This may take a few moments...
+            </p>
           </div>
         </div>
       </Dialog>

@@ -1,8 +1,29 @@
 import { ChevronLeft, ChevronRight, MoreHorizontal, ChevronDown } from "lucide-react";
 import { useOrders } from "@/hooks/useOrders";
+import { useState } from "react";
 
 export function OrderDetails() {
   const { orders, loading, error } = useOrders();
+  const [currentPage, setCurrentPage] = useState(1);
+  const ordersPerPage = 7;
+
+  // Calculate pagination
+  const indexOfLastOrder = currentPage * ordersPerPage;
+  const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
+  const currentOrders = orders.slice(indexOfFirstOrder, indexOfLastOrder);
+  const totalPages = Math.ceil(orders.length / ordersPerPage);
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
 
   if (loading) {
     return (
@@ -75,7 +96,7 @@ export function OrderDetails() {
 
         {/* Table Rows */}
         <div className="bg-white">
-          {orders.map((order) => (
+          {currentOrders.map((order) => (
             <div key={order.id} className="grid grid-cols-5 gap-6 px-6 py-5 border-b border-gray-100 hover:bg-gray-50 transition-colors">
               <div className="text-blue-900 font-medium text-sm">
                 {order.customer_name}
@@ -111,13 +132,25 @@ export function OrderDetails() {
             {orders.length} Items
           </div>
           <div className="flex items-center gap-3">
-            <button className="w-9 h-9 flex items-center justify-center border border-blue-900 rounded-md text-blue-900 hover:bg-blue-50 transition-colors">
+            <button 
+              onClick={handlePreviousPage}
+              disabled={currentPage === 1}
+              className={`w-9 h-9 flex items-center justify-center border border-blue-900 rounded-md text-blue-900 hover:bg-blue-50 transition-colors ${
+                currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <span className="text-blue-900 font-medium text-sm px-2">
-              1 of {Math.ceil(orders.length / 4)}
+              {currentPage} of {totalPages}
             </span>
-            <button className="w-9 h-9 flex items-center justify-center border border-blue-900 rounded-md text-blue-900 hover:bg-blue-50 transition-colors">
+            <button 
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages}
+              className={`w-9 h-9 flex items-center justify-center border border-blue-900 rounded-md text-blue-900 hover:bg-blue-50 transition-colors ${
+                currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>

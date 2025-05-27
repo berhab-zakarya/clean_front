@@ -1,16 +1,13 @@
 "use client"
 
-import { FileSystemNode } from "@/lib/types/files"
+import { FileSystemNode, FileTreeResponse } from "@/lib/types/files"
 import { useState, useEffect, useCallback } from "react"
 import { filesAPI } from "@/lib/api/api"
 
-interface FileItem {
-  path: string
-  type: 'file' | 'folder'
-}
-
-interface APIResponse {
-  files: FileItem[]
+type FileTreeNode = {
+  path: string;
+  type: "file" | "directory";
+  children?: FileTreeNode[];
 }
 
 export function useFilesystem(tenantName: string) {
@@ -33,26 +30,16 @@ export function useFilesystem(tenantName: string) {
 
       try {
         setLoading(true)
-        const rawResponse = await filesAPI.getStoreFiles(tenantName)
-        console.log('API Response:', rawResponse)
+        const response = await filesAPI.getStoreFiles(tenantName)
+        console.log('API Response:', response)
         
-        // Ensure we have an array of file items
-        if (!rawResponse || !rawResponse.files || !Array.isArray(rawResponse.files)) {
+        // Ensure we have a valid tree response
+        if (!response || !response.tree) {
           throw new Error('Invalid API response format')
         }
 
-        // Convert the response to the expected type
-        const typedResponse: APIResponse = {
-          files: rawResponse.files.map(file => {
-            if (typeof file === 'string') {
-              return { path: file, type: 'file' as const }
-            }
-            return file as FileItem
-          })
-        }
-        
-        // Transform file list into nested structure
-        const transformedFiles = transformFileStructure(typedResponse.files)
+        // Transform the tree structure into our FileSystemNode format
+        const transformedFiles = transformTreeToNodes(response.tree)
         setFiles(transformedFiles)
         setError(null)
       } catch (error: unknown) {
@@ -66,102 +53,23 @@ export function useFilesystem(tenantName: string) {
     fetchFiles()
   }, [tenantName])
 
-  // Helper function to transform flat file list into tree structure
-  const transformFileStructure = (filesList: FileItem[]): FileSystemNode[] => {
-    console.log('Transforming files:', filesList)
-    const root: FileSystemNode[] = []
+  // Helper function to transform tree structure into FileSystemNode array
+  const transformTreeToNodes = (tree: FileTreeResponse['tree']): FileSystemNode[] => {
     const idCounter = { value: 0 }
-    const paths: Record<string, FileSystemNode> = {}
-
-    // First pass: create all nodes
-    filesList.forEach((item) => {
-      if (!item || typeof item.path !== 'string') {
-        console.error('Invalid file item:', item)
-        return
+    
+    const createNode = (item: FileTreeNode): FileSystemNode => {
+      const id = `node-${idCounter.value++}`
+      return {
+        id,
+        name: item.path.split('/').pop() || '',
+        path: item.path,
+        type: item.type === 'directory' ? 'folder' : 'file',
+        children: item.children ? item.children.map(createNode) : undefined
       }
-      
-      const pathParts = item.path.split("/")
-
-      if (pathParts.length === 1) {
-        // Root level items
-        const id = `node-${idCounter.value++}`
-        const node: FileSystemNode = {
-          id,
-          name: pathParts[0],
-          path: item.path,
-          type: item.type,
-          children: item.type === 'folder' ? [] : undefined,
-        }
-
-        paths[item.path] = node
-        root.push(node)
-      } else {
-        // Nested items
-        const parentPath = pathParts.slice(0, -1).join("/")
-        const fileName = pathParts[pathParts.length - 1]
-
-        // Ensure parent directories exist
-        let currentPath = ""
-        for (let i = 0; i < pathParts.length - 1; i++) {
-          const part = pathParts[i]
-          const prevPath = currentPath
-          currentPath = prevPath ? `${prevPath}/${part}` : part
-
-          if (!paths[currentPath]) {
-            const id = `node-${idCounter.value++}`
-            const node: FileSystemNode = {
-              id,
-              name: part,
-              path: currentPath,
-              type: "folder",
-              children: [],
-            }
-
-            paths[currentPath] = node
-
-            if (prevPath) {
-              paths[prevPath].children?.push(node)
-            } else {
-              root.push(node)
-            }
-          }
-        }
-
-        // Add the file
-        const id = `node-${idCounter.value++}`
-        const node: FileSystemNode = {
-          id,
-          name: fileName,
-          path: item.path,
-          type: item.type,
-          children: item.type === 'folder' ? [] : undefined,
-        }
-
-        paths[item.path] = node
-
-        if (parentPath && paths[parentPath]) {
-          paths[parentPath].children?.push(node)
-        }
-      }
-    })
-
-    // Initial sort: directories first, then files alphabetically
-    const sortNodes = (nodes: FileSystemNode[]): FileSystemNode[] => {
-      return nodes
-        .sort((a, b) => {
-          if (a.type === "folder" && b.type !== "folder") return -1
-          if (a.type !== "folder" && b.type === "folder") return 1
-          return a.name.localeCompare(b.name)
-        })
-        .map((node) => {
-          if (node.children) {
-            node.children = sortNodes(node.children)
-          }
-          return node
-        })
     }
 
-    return sortNodes(root)
+    // Start with the root node's children
+    return tree.children ? tree.children.map(createNode) : []
   }
 
   // Fetch file content
@@ -210,13 +118,15 @@ export function useFilesystem(tenantName: string) {
     },
     [fileCache, tenantName]
   )
-function sanitizeCodeBlock(code: string): string {
-  return code
-    .trim()
-    .replace(/^```tsx?\s*/i, '') // Remove starting ```tsx or ```ts
-    .replace(/```$/, '')         // Remove trailing ```
-    .trim();
-}
+
+  function sanitizeCodeBlock(code: string): string {
+    return code
+      .trim()
+      .replace(/^```tsx?\s*/i, '') // Remove starting ```tsx or ```ts
+      .replace(/```$/, '')         // Remove trailing ```
+      .trim();
+  }
+
   // Update file content (in cache and eventually on server)
   const updateFileContent = useCallback(async (path: string, content: string) => {
     if (!tenantName) {
@@ -244,20 +154,14 @@ function sanitizeCodeBlock(code: string): string {
         })
       }
 
-      // Update file content on server
-      // const response = await filesAPI.updateFileContent(tenantName, path, content)
-
       const cleanedContent = sanitizeCodeBlock(content);
 
-// Update file content on server
-const response = await filesAPI.updateFileContent(tenantName, path, cleanedContent)
+      // Update file content on server
+      const response = await filesAPI.updateFileContent(tenantName, path, cleanedContent)
       console.log('Update response:', response)
-      // if (!response || !response.content) {
-      //   throw new Error('Failed to update file content')
-      // }
 
       // Update original content after successful save
-      setOriginalContent((prev) => ({ ...prev, [path]: response.content }))
+      setOriginalContent((prev) => ({ ...prev, [path]: cleanedContent }))
       setModifiedFiles((prev) => {
         const newSet = new Set(prev)
         newSet.delete(path)
