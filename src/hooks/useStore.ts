@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
-import { storesAPI } from '@/lib/api/api';
+import { storesAPI, categoriesAPI } from '@/lib/api/api';
 import type { CreateStoreRequest, Store } from '@/lib/types/store';
+import type { CreateCategoryRequest, Category } from '@/lib/types/category';
 
 export function useStore() {
   const [loading, setLoading] = useState(true);
@@ -169,6 +170,23 @@ export function useStore() {
     }
   };
 
+  const createCategory = async (data: CreateCategoryRequest, store: Store): Promise<Category | null> => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const category = await categoriesAPI.createCategory(data, store);
+      return category;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create category';
+      setError(errorMessage);
+      console.error('Category creation failed:', errorMessage);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const initializeStore = async () => {
       // Try to get cached store first
@@ -205,5 +223,6 @@ export function useStore() {
     checkStoreExistence,
     getAllStores,
     updateStore,
+    createCategory,
   };
 }

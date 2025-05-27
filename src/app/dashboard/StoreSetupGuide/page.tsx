@@ -6,12 +6,17 @@ import SimpleButton from "@/components/common/SimpleButton";
 import { CompleteProfile } from "@/components/dashboard/StoreSetupGuide/CompleteProfile";
 import { CreateStore } from "@/components/dashboard/StoreSetupGuide/CreateStore";
 import { CategoryDialog } from "@/components/dashboard/StoreSetupGuide/CategoryDialog";
+import type { Store } from "@/lib/types/store";
+import { useStore } from "@/hooks/useStore";
+import { useRouter } from "next/navigation";
 
 type SectionKey = 'setup' | 'profile' | 'name' | 'categories' | 'product';
 type StepKey = 'profile' | 'storeName' | 'categories' | 'products';
 type StepId = 'profile' | 'name' | 'categories' | 'product';
 
 export default function EcommerceSetupGuide() {
+  const router = useRouter();
+  const { createCategory } = useStore();
   const [showBanner, setShowBanner] = useState(true);
   const [expandedSections, setExpandedSections] = useState<Record<SectionKey, boolean>>({
     setup: true,
@@ -30,6 +35,7 @@ export default function EcommerceSetupGuide() {
   });
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
   const [categories, setCategories] = useState<Array<{ name: string; description?: string }>>([]);
+  const [currentStore, setCurrentStore] = useState<Store | null>(null);
 
   const toast = {
     error: (message: string) => alert(message)
@@ -68,7 +74,8 @@ export default function EcommerceSetupGuide() {
     }));
   };
 
-  const handleStoreComplete = () => {
+  const handleStoreComplete = (store: Store) => {
+    setCurrentStore(store);
     setCompletedSteps(prev => ({
       ...prev,
       storeName: true
@@ -81,22 +88,49 @@ export default function EcommerceSetupGuide() {
     }));
   };
 
-  const handleCategorySubmit = (category: { name: string; description?: string }) => {
-    setCategories(prev => [...prev, category]);
-    setCompletedSteps(prev => ({
-      ...prev,
-      categories: true
-    }));
-    setShowCategoryDialog(false);
-    setExpandedSections(prev => ({
-      ...prev,
-      product: true,
-      categories: false
-    }));
+  const handleCategorySubmit = async (category: { name: string; description?: string; storeId: number }) => {
+    if (!currentStore) {
+      toast.error("No store selected");
+      return;
+    }
+    
+    try {
+      const newCategory = await createCategory({
+        name: category.name,
+        slug: category.name.toLowerCase().replace(/\s+/g, '-'),
+        description: category.description || '',
+      }, currentStore);
+
+      if (newCategory) {
+        setCategories(prev => [...prev, category]);
+        setCompletedSteps(prev => ({
+          ...prev,
+          categories: true
+        }));
+        setShowCategoryDialog(false);
+        setExpandedSections(prev => ({
+          ...prev,
+          product: true,
+          categories: false
+        }));
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to create category');
+    }
   };
 
-  const router = {
-    push: (path: string) => console.log(`Navigate to: ${path}`)
+  const handleCategoryClick = () => {
+    if (!currentStore) {
+      toast.error("Please create your store first");
+      return;
+    }
+    setShowCategoryDialog(true);
+  };
+
+  const handleSkipProducts = () => {
+    if (currentStore) {
+      router.push(`/dashboard/${currentStore.id}/store-settings`);
+    }
   };
 
   const getStepStatus = (step: StepId): "completed" | "current" | "locked" => {
@@ -145,7 +179,7 @@ export default function EcommerceSetupGuide() {
       expandedContent: 'Create categories to help customers find your products easily. Add descriptions and images to make your categories more appealing and informative.',
       buttonText: 'Add Category',
       completedText: 'Categories Created',
-      action: () => setShowCategoryDialog(true),
+      action: handleCategoryClick,
       hasExample: true
     },
     {
@@ -405,6 +439,15 @@ export default function EcommerceSetupGuide() {
                             Bulk Upload
                           </Button>
                         )}
+
+                        {step.id === 'product' && !isCompleted && (
+                          <Button
+                            onClick={handleSkipProducts}
+                            className="flex items-center gap-3 px-8 py-4 rounded-2xl font-semibold text-lg border-2 border-gray-300 text-gray-600 hover:bg-gray-50 transition-all"
+                          >
+                            Skip for now
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -468,11 +511,14 @@ export default function EcommerceSetupGuide() {
         </div>
       </div>
 
-      <CategoryDialog
-        isOpen={showCategoryDialog}
-        onClose={() => setShowCategoryDialog(false)}
-        onSubmit={handleCategorySubmit}
-      />
+      {currentStore && (
+        <CategoryDialog
+          isOpen={showCategoryDialog}
+          onClose={() => setShowCategoryDialog(false)}
+          onSubmit={handleCategorySubmit}
+          store={currentStore}
+        />
+      )}
     </div>
   );
 }
