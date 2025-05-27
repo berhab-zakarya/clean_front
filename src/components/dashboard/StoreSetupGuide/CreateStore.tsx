@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button"
 import { useStore } from "@/hooks/useStore"
 import { toast } from "react-hot-toast"
 import { Terminal, TypingAnimation, AnimatedSpan } from "@/components/magicui/terminal"
-import { Store, Sparkles, Rocket, Globe, ExternalLink, CheckCircle, Clock, Zap } from "lucide-react"
-
+import { Store as StoreIcon, Sparkles, Rocket, Globe, ExternalLink, CheckCircle, Clock, Zap } from "lucide-react"
+import type { Store } from "@/lib/types/store";
 
 // Lazy load the MergedComponent
 const DeploymentBackground = dynamic(() => import("@/components/dashboard/StoreSetupGuide/DeploymentBackground"), {
@@ -17,7 +17,7 @@ const DeploymentBackground = dynamic(() => import("@/components/dashboard/StoreS
 })
 
 interface CreateStoreProps {
-  onComplete: () => void
+  onComplete: (store: Store) => void
 }
 
 // Enhanced FeatureSpotlight component with new design
@@ -127,17 +127,6 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
         }
       }, 10000)
 
-      // Deployment timeout (5 minutes)
-      const deploymentTimeout = setTimeout(() => {
-        if (ws.readyState === WebSocket.OPEN && !deploymentComplete) {
-          setTerminalLines(prev => [...prev, {
-            type: "span" as const,
-            text: "⏰ Deployment is taking longer than usual. This is normal for first-time deployments.",
-            className: "text-amber-400 font-medium",
-          }])
-        }
-      }, 300000)
-
       ws.onopen = () => {
         clearTimeout(connectionTimeout)
         setTerminalLines(prev => [...prev, {
@@ -153,7 +142,6 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
 
       ws.onclose = (event) => {
         clearTimeout(connectionTimeout)
-        clearTimeout(deploymentTimeout)
         
         if (!deploymentComplete) {
           setTerminalLines(prev => [...prev, {
@@ -179,17 +167,16 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
           // Handle plain text messages
         }
 
-        // Check for successful deployment - updated conditions
+        // Check for successful deployment
         if (msg.includes("Pure store deployment successful") || 
             msg.includes("deployment successful") ||
             msg.includes("Store deployed successfully") ||
             msg.includes("ready") ||
-            msg.toLowerCase().includes("ready") ||  // Case-insensitive ready detection
+            msg.toLowerCase().includes("ready") ||
             status === "success" || 
             status === "deployed" ||
             msg.includes("deployed successfully")) {
           
-          clearTimeout(deploymentTimeout)
           setDeploymentComplete(true)
           
           setTerminalLines(prev => [...prev, {
@@ -198,13 +185,11 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
             className: "text-emerald-400 font-bold text-lg",
           }, {
             type: "span" as const,
-            text: "🚀 Terminal Ready",  // Added Terminal Ready text
+            text: "🚀 Terminal Ready",
             className: "text-cyan-400 font-bold text-lg",
           }])
           
-          // Use the store URL from the response
           if (url) {
-            // Validate and clean URL
             let cleanUrl = url.trim()
             if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
               cleanUrl = `https://${cleanUrl}`
@@ -216,39 +201,18 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
               text: `🌐 Store URL: ${cleanUrl}`,
               className: "text-emerald-400 font-medium",
             }])
-            
-            // Automatically open the store URL
-            setTimeout(() => {
-              window.open(cleanUrl, "_blank", "noopener,noreferrer")
-              toast.success("Your store is opening automatically!")
-              // Add delay before calling onComplete to ensure store URL is opened first
-              setTimeout(() => {
-                onComplete()
-              }, 2000)
-            }, 2000)
           }
-          
-          // Close WebSocket connection immediately when ready
-          setTimeout(() => {
-            ws.close()
-          }, 3000)
-          
         } else if (status === "failed" || 
                    msg.toLowerCase().includes("deployment failed") ||
                    msg.toLowerCase().includes("error") || 
                    msg.toLowerCase().includes("failed")) {
-          clearTimeout(deploymentTimeout)
           setTerminalLines(prev => [...prev, {
             type: "span" as const,
             text: `❌ Deployment failed: ${msg}`,
             className: "text-red-400 font-semibold",
           }])
-          // Add delay before closing on failure
-          setTimeout(() => {
-            ws.close()
-            setIsDeploying(false)
-          }, 5000)
           toast.error("Deployment failed. Please try again.")
+          setIsDeploying(false)
         } else if (msg.trim()) {
           // Show deployment progress messages
           let displayMsg = msg
@@ -285,13 +249,12 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
           }])
         }
 
-        // Auto-scroll terminal with a small delay to ensure content is rendered
+        // Auto-scroll terminal
         setTimeout(handleScroll, 150)
       }
 
       ws.onerror = (error) => {
         clearTimeout(connectionTimeout)
-        clearTimeout(deploymentTimeout)
         setTerminalLines(prev => [...prev, {
           type: "span" as const,
           text: "🚨 WebSocket connection error. Please check your network and try again.",
@@ -304,7 +267,6 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
 
       return () => {
         clearTimeout(connectionTimeout)
-        clearTimeout(deploymentTimeout)
         if (ws.readyState === WebSocket.OPEN) {
           ws.close()
         }
@@ -360,33 +322,14 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
     setStoreUrl(null)
 
     try {
-      const response = await createStore(formData)
-      if (response?.message) {
-        toast.success(response.message)
-        setTerminalLines([
-          {
-            type: "typing",
-            text: `🏪 Creating store "${formData.store_name}"...`,
-            className: "text-indigo-400 font-medium",
-          },
-          {
-            type: "span",
-            text: `✅ ${response.message}`,
-            className: "text-emerald-400",
-          },
-        ])
-        
-        if (response.id) {
-          setStoreUrl(response.store_url);
-          setStoreId(response.id); // Store the ID for navigation
-          setTimeout(() => {
-            handleWebSocket(response.id)
-          }, 1000)
-        } else {
-          throw new Error("No store ID received from server")
-        }
+      const store = await createStore(formData)
+      if (store) {
+        setStoreId(store.id)
+        setStoreUrl(store.store_url)
+        handleWebSocket(store.id)
+        // Don't call onComplete here - wait for user to click the button
       } else {
-        throw new Error("No response received from server")
+        throw new Error("No store received from server")
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Failed to create store"
@@ -402,17 +345,40 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
     }
   }, [formData, createStore, handleWebSocket])
 
-  // Function to open store URL
+  // Function to open store URL and complete the step
   const openStoreUrl = useCallback(() => {
-    if (storeUrl) {
+    if (storeUrl && storeId) {
       window.open(storeUrl, "_blank", "noopener,noreferrer")
       toast.success("Opening your store in a new tab!")
-      // Add delay before calling onComplete to ensure store URL is opened first
-      setTimeout(() => {
-        onComplete()
-      }, 2000)
+      // Only call onComplete when the user explicitly clicks the button
+      onComplete({
+        id: storeId,
+        store_url: storeUrl,
+        store_name: formData.store_name,
+        subdomain: formData.subdomain,
+        store_type: formData.store_type,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        status: "active",
+        owner_id: 0, // This will be set by the backend
+        theme: "default",
+        settings: {},
+        metadata: {},
+        analytics: {},
+        features: [],
+        integrations: [],
+        custom_domain: null,
+        ssl_status: "pending",
+        deployment_status: "deployed",
+        last_deployment: new Date().toISOString(),
+        version: "1.0.0"
+      })
+      // Reset deployment state after completion
+      setIsDeploying(false)
+      setDeploymentComplete(false)
+      setTerminalLines([])
     }
-  }, [storeUrl, onComplete])
+  }, [storeUrl, onComplete, storeId, formData])
 
   // Cleanup WebSocket on unmount
   useEffect(() => {
@@ -435,7 +401,7 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg">
-              <Store className="h-6 w-6 text-white" />
+              <StoreIcon className="h-6 w-6 text-white" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">Store Creator</h1>
@@ -480,7 +446,6 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
 
                     {/* Enhanced Terminal */}
                     <div className="relative w-full max-h-[50vh] overflow-y-auto bg-gradient-to-br from-gray-950/90 to-gray-900/90 rounded-2xl border border-gray-700/50 backdrop-blur-sm shadow-2xl">
-                      
                       <div className="p-6" ref={terminalScrollRef}>
                         <Terminal className="text-white bg-transparent">
                           {terminalLines.length === 0 ? (
@@ -512,47 +477,36 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
                       </div>
                     </div>
 
-                    {/* Enhanced Store URL Display */}
-                    {storeUrl ? (
+                    {/* Store URL Display */}
+                    {storeUrl && (
                       <div className="mt-8 text-center">
                         <div className="inline-block bg-gradient-to-r from-emerald-500/20 to-green-500/20 p-6 rounded-2xl border border-emerald-500/30 backdrop-blur-sm">
                           <div className="flex items-center justify-center gap-3 mb-4">
                             <CheckCircle className="h-6 w-6 text-emerald-400" />
                             <span className="text-emerald-400 font-bold text-lg">Your Store is Live!</span>
                           </div>
-                          <button
-                            onClick={openStoreUrl}
-                            className="flex items-center gap-2 text-white bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-3 rounded-lg font-semibold hover:from-indigo-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
-                          >
-                            <Globe className="h-5 w-5" />
-                            Visit Your Store
-                            <ExternalLink className="h-4 w-4" />
-                          </button>
-                           {storeId && (
-  <button
-    onClick={() => {
-      router.push(`/dashboard/${storeId}`);
-    }}
-    className="flex items-center gap-2 text-white bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-3 rounded-lg font-semibold hover:from-emerald-600 hover:to-teal-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
-  >
-    <Store className="h-5 w-5" />
-    Go to Dashboard
-  </button>
-)}
-                          <p className="text-sm text-gray-400 mt-2 font-mono">{storeUrl}</p>
-                        </div>
-                        <p className="text-gray-400 text-sm mt-4">
-                          Redirecting to setup guide in {deploymentComplete ? '5' : '...'} seconds...
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="mt-8 text-center">
-                        <div className="inline-block bg-gradient-to-r from-amber-500/20 to-orange-500/20 p-6 rounded-2xl border border-amber-500/30 backdrop-blur-sm">
-                          <div className="flex items-center justify-center gap-3 mb-2">
-                            <Clock className="h-5 w-5 text-amber-400 animate-spin" />
-                            <span className="text-amber-400 font-semibold">Preparing your store...</span>
+                          <div className="flex gap-4 justify-center">
+                            <button
+                              onClick={openStoreUrl}
+                              className="flex items-center gap-2 text-white bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-3 rounded-lg font-semibold hover:from-indigo-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                            >
+                              <Globe className="h-5 w-5" />
+                              Visit Your Store
+                              <ExternalLink className="h-4 w-4" />
+                            </button>
+                            {storeId && (
+                              <button
+                                onClick={() => {
+                                  router.push(`/dashboard/${storeId}`);
+                                }}
+                                className="flex items-center gap-2 text-white bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-3 rounded-lg font-semibold hover:from-emerald-600 hover:to-teal-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                              >
+                                <StoreIcon className="h-5 w-5" />
+                                Go to Dashboard
+                              </button>
+                            )}
                           </div>
-                          <p className="text-gray-400 text-sm">Your store URL will appear here once deployment is complete</p>
+                          <p className="text-sm text-gray-400 mt-2 font-mono">{storeUrl}</p>
                         </div>
                       </div>
                     )}
@@ -572,7 +526,7 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
               <div className="relative bg-gradient-to-br from-gray-900/90 to-gray-800/50 rounded-2xl p-8 border border-gray-700/50 backdrop-blur-sm shadow-2xl">
                 <div className="flex flex-col items-center mb-8">
                   <div className="p-3 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl mb-4">
-                    <Store className="h-8 w-8 text-white" />
+                    <StoreIcon className="h-8 w-8 text-white" />
                   </div>
                   <h1 className="text-3xl font-bold text-white mb-2">Create Your Store</h1>
                   <p className="text-gray-400 text-center leading-relaxed">
