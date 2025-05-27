@@ -24,6 +24,7 @@ import {
   SubscriptionApiError 
 } from "../types/subscription";
 import { Order, OrderApiError } from "../types/order";
+import { FileTreeResponse } from "../types/files";
 // Add this at the start of the file
 const debug = {
   log: (...args: unknown[]) => {
@@ -1062,17 +1063,15 @@ export const categoriesAPI = {
     }
   },
 
-  getCategories: async (): Promise<Category[]> => {
+  getCategories: async (store: Store): Promise<Category[]> => {
     try {
-      // Get current store
-      const currentStore = await storesAPI.getCurrentStore();
-      if (!currentStore?.store_url) {
+      if (!store?.store_url) {
         throw new Error('Store URL not found');
       }
 
       // Create a new axios instance with store URL as base
       const storeApi = axios.create({
-        baseURL: ensurePort8000(currentStore.store_url),
+        baseURL: ensurePort8000(store.store_url),
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('access_token')}`
@@ -1228,9 +1227,9 @@ interface FileContentResponse {
 }
 
 export const filesAPI = {
-  getStoreFiles: async (subdomain: string): Promise<{ files: string[] }> => {
+  getStoreFiles: async (subdomain: string): Promise<FileTreeResponse> => {
     try {
-      const response = await api.get<{ files: string[] }>(`/tenants/files/${subdomain}/`);
+      const response = await api.get<FileTreeResponse>(`/tenants/${subdomain}/files/`);
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -1247,7 +1246,7 @@ export const filesAPI = {
 
   getFileContent: async (subdomain: string, filePath: string): Promise<FileContentResponse> => {
     try {
-      const response = await api.get<FileContentResponse>(`/tenants/files/${subdomain}/`, {
+      const response = await api.get<FileContentResponse>(`/api/tenants/${subdomain}/files`, {
         params: {
           path: filePath
         }

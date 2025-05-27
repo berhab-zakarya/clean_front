@@ -33,7 +33,7 @@ export function useProducts() {
             id: "2",
             title: "Smart Watch Series X",
             price: 15000,
-            image_url: "https://testimages.org/img/testimages_screenshot.jpg",
+            image_url: "/placeholder.svg?height=400&width=400",
             category: "Wearables",
             description: "Advanced smartwatch with health monitoring",
           },

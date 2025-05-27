@@ -354,18 +354,9 @@ export function DashboardHeader() {
                     <span className="text-sm">Profile Settings</span>
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-[#f3f5f7] cursor-pointer transition-colors">
-                  <ShoppingBag className="h-4 w-4 text-[#1e3a8a]" />
-                  <span className="text-sm">Orders</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-[#f3f5f7] cursor-pointer transition-colors">
-                  <Heart className="h-4 w-4 text-[#1e3a8a]" />
-                  <span className="text-sm">Saved Items</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-[#f3f5f7] cursor-pointer transition-colors">
-                  <CheckCheck className="h-4 w-4 text-[#1e3a8a]" />
-                  <span className="text-sm">Completed Orders</span>
-                </DropdownMenuItem>
+                
+                
+                
                 <DropdownMenuItem
                   asChild
                   className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-[#f3f5f7] cursor-pointer transition-colors"

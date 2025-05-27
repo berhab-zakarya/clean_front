@@ -82,9 +82,13 @@ export function useStore() {
     try {
       setLoading(true);
       const store = await storesAPI.getCurrentStore();
+      console.log('Current store response:', store);
 
       if (store === null) {
-        // User not authenticated, do not clear store or set error
+        setHasStore(false);
+        setUserStore(null);
+        setStoreId(null);
+        localStorage.removeItem('userStore');
         return false;
       }
 
@@ -92,10 +96,7 @@ export function useStore() {
         setUserStore(store);
         setStoreId(store.id);
         setHasStore(true);
-
-        // Cache the store data
         localStorage.setItem('userStore', JSON.stringify(store));
-
         return true;
       }
 
@@ -108,6 +109,8 @@ export function useStore() {
       console.error('Store existence check failed:', err);
       setError(err instanceof Error ? err.message : 'Failed to check store existence');
       setHasStore(false);
+      setUserStore(null);
+      setStoreId(null);
       localStorage.removeItem('userStore');
       return false;
     } finally {
@@ -187,25 +190,62 @@ export function useStore() {
     }
   };
 
+  const getCategories = async (store: Store): Promise<Category[]> => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const categories = await categoriesAPI.getCategories(store);
+      return categories;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch categories';
+      setError(errorMessage);
+      console.error('Categories fetch failed:', errorMessage);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const initializeStore = async () => {
-      // Try to get cached store first
-      const cachedStore = localStorage.getItem('userStore');
-      if (cachedStore) {
-        try {
-          const store = JSON.parse(cachedStore);
-          setUserStore(store);
-          setStoreId(store.id);
-          setHasStore(true);
-        } catch (e) {
-          console.error('Failed to parse cached store:', e);
+      try {
+        setLoading(true);
+        // Try to get cached store first
+        const cachedStore = localStorage.getItem('userStore');
+        if (cachedStore) {
+          try {
+            const store = JSON.parse(cachedStore);
+            console.log('Found cached store:', store);
+            if (store.store_url) {
+              setUserStore(store);
+              setStoreId(store.id);
+              setHasStore(true);
+            } else {
+              console.error('Cached store missing store_url:', store);
+              localStorage.removeItem('userStore');
+            }
+          } catch (e) {
+            console.error('Failed to parse cached store:', e);
+            localStorage.removeItem('userStore');
+          }
         }
+        
+        // Always verify with API
+        const storeExists = await checkStoreExistence();
+        console.log('Store existence check result:', storeExists);
+        
+        if (storeExists) {
+          // Get all stores only if we have a valid store
+          const stores = await getAllStores();
+          console.log('Fetched all stores:', stores);
+        }
+      } catch (error) {
+        console.error('Store initialization failed:', error);
+        setError(error instanceof Error ? error.message : 'Failed to initialize store');
+      } finally {
+        setLoading(false);
       }
-      
-      // Always verify with API
-      await checkStoreExistence();
-      // Get all stores
-      await getAllStores();
     };
 
     initializeStore();
@@ -224,5 +264,6 @@ export function useStore() {
     getAllStores,
     updateStore,
     createCategory,
+    getCategories,
   };
 }

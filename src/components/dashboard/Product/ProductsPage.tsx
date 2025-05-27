@@ -22,13 +22,14 @@ import Image from "next/image";
 import { folder, users } from "@/lib/icons";
 import { Checkbox } from "@/components/common/Checkbox";
 import Button from "@/components/common/Button";
+import AdGeneratorPage from "@/app/ad-generator/page";
 
 interface EditProductDialogProps {
   isOpen: boolean;
   onClose: () => void;
   product: Product | null;
   onEdit: (product: Product) => void;
-  onDelete: (productId: string) => void;
+  onDelete: (product: Product) => void;
 }
 
 function EditProductDialog({ isOpen, onClose, product, onEdit, onDelete }: EditProductDialogProps) {
@@ -210,7 +211,7 @@ function EditProductDialog({ isOpen, onClose, product, onEdit, onDelete }: EditP
           <div className="flex justify-between items-center">
             {/* Delete Button */}
             <button
-              onClick={() => onDelete(currentProduct.id.toString())}
+              onClick={() => onDelete(currentProduct)}
               className="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-200 flex items-center font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
             >
               <Trash2 className="h-4 w-4 mr-2" />
@@ -328,6 +329,8 @@ export default function ProductsPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [showAdGenerator, setShowAdGenerator] = useState(false);
+  const [selectedProductForAd, setSelectedProductForAd] = useState<Product | null>(null);
 
   // Filter products based on search, category and status
   const filteredProducts = products.filter((product) => {
@@ -563,7 +566,7 @@ export default function ProductsPage() {
             </div>
             <div>
               <div className="text-gray-600">1 Start rating</div>
-              <div className="text-xl font-bold text-gray-900">2</div>
+              <div className="text-xl font-bold text-gray-900">0</div>
             </div>
           </div>
         </div>
@@ -744,6 +747,15 @@ export default function ProductsPage() {
                         <Edit className="h-4 w-4" />
                       </button>
                       <button
+                        onClick={() => {
+                          setSelectedProductForAd(product);
+                          setShowAdGenerator(true);
+                        }}
+                        className="p-2 text-gray-500 hover:text-[#1E3A8A] transition-colors"
+                      >
+                        <Package className="h-4 w-4" />
+                      </button>
+                      <button
                         onClick={() => handleDeleteClick(product)}
                         className="p-2 text-gray-500 hover:text-red-600 transition-colors"
                       >
@@ -788,6 +800,31 @@ export default function ProductsPage() {
         onConfirm={handleDeleteConfirm}
         productName={productToDelete?.name || ''}
       />
+
+      {/* Ad Generator Dialog */}
+      {showAdGenerator && selectedProductForAd && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-6xl transform transition-all max-h-[90vh] overflow-y-auto">
+            <div className="bg-gradient-to-r from-[#1D1178] to-[#2D1D92] px-8 py-6 rounded-t-3xl">
+              <div className="flex justify-between items-center">
+                <h2 className="text-3xl font-bold text-white mb-1">Ad Generator</h2>
+                <button 
+                  onClick={() => {
+                    setShowAdGenerator(false);
+                    setSelectedProductForAd(null);
+                  }}
+                  className="text-white/70 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-full"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+            <div className="p-8">
+              <AdGeneratorPage initialProduct={selectedProductForAd} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
