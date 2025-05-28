@@ -53,6 +53,11 @@ export interface Store {
   whatsapp_number: string | null;
   social_links: Record<string, string | null>;
   theme_colors: ThemeColors;
+  company_name: string | null;
+  company_description: string | null;
+  announcement_text: string | null;
+  hero_title: string | null;
+  hero_description: string | null;
 }
 
 export interface StoreApiError {

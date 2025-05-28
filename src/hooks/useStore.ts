@@ -207,6 +207,53 @@ export function useStore() {
     }
   };
 
+  const updateTenant = async (tenantId: number, data: {
+    constants: {
+      company_name: string;
+      company_description: string;
+      social_links: Array<{ name: string; url: string }>;
+      announcement_text: string;
+      hero_title: string;
+      hero_description: string;
+      email: string;
+      phone: string;
+      address: string;
+      whatsapp: string;
+    }
+  }): Promise<Store | null> => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const updatedStore = await storesAPI.updateTenant(tenantId, data);
+      
+      if (updatedStore) {
+        // Update the store in state if it's the current user's store
+        if (userStore?.id === tenantId) {
+          setUserStore(updatedStore);
+          // Update cache
+          localStorage.setItem('userStore', JSON.stringify(updatedStore));
+        }
+        
+        // Update in stores list if it exists there
+        setStores(prevStores => 
+          prevStores.map(store => 
+            store.id === tenantId ? updatedStore : store
+          )
+        );
+      }
+      
+      return updatedStore;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update tenant';
+      setError(errorMessage);
+      console.error('Tenant update failed:', errorMessage);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const initializeStore = async () => {
       try {
@@ -265,5 +312,6 @@ export function useStore() {
     updateStore,
     createCategory,
     getCategories,
+    updateTenant,
   };
 }

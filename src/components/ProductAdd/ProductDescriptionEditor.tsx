@@ -12,8 +12,9 @@ export default function ProductDescriptionEditor({ onDescriptionChange }: Produc
   const { loading, description, error, generate } = useProductDescription();
 
   const [open, setOpen] = useState(false);
-  const [characteristics, setCharacteristics] = useState("");
-  const [keywords, setKeywords] = useState("");
+  
+  const CONSTANT_CHARACTERISTICS = "Round shape, Copper frame, Pink to Brown gradient lenses, UV protection, Polarized lenses, Lightweight metal frame, Classic design";
+  const CONSTANT_KEYWORDS = "ray-ban, sunglasses, round, copper, pink, brown, gradient, vintage, classic, eyewear";
 
   useEffect(() => {
     if (description && editorRef.current) {
@@ -23,10 +24,10 @@ export default function ProductDescriptionEditor({ onDescriptionChange }: Produc
 
   const handleGenerate = async () => {
     await generate({
-      productName: "Smart Watch",
-      category: "Electronics",
-      features: characteristics,
-      keywords: keywords,
+      productName: "Ray-Ban Round",
+      category: "Eyewear",
+      features: CONSTANT_CHARACTERISTICS,
+      keywords: CONSTANT_KEYWORDS,
     });
     setOpen(false);
   };
@@ -62,9 +63,8 @@ export default function ProductDescriptionEditor({ onDescriptionChange }: Produc
                 <textarea
                   className="w-full border border-gray-200 rounded-lg px-4 py-3 focus:ring-2 focus:ring-[#1E3A8A] focus:border-transparent transition-all duration-200 resize-none"
                   rows={3}
-                  placeholder="e.g. Long battery life, waterproof, touch screen"
-                  value={characteristics}
-                  onChange={e => setCharacteristics(e.target.value)}
+                  value={CONSTANT_CHARACTERISTICS}
+                  readOnly
                 />
               </div>
 
@@ -72,9 +72,8 @@ export default function ProductDescriptionEditor({ onDescriptionChange }: Produc
                 <label className="block font-medium text-gray-700">Keywords</label>
                 <input
                   className="w-full border border-gray-200 rounded-lg px-4 py-3 focus:ring-2 focus:ring-[#1E3A8A] focus:border-transparent transition-all duration-200"
-                  placeholder="e.g. watch, smart, electronics"
-                  value={keywords}
-                  onChange={e => setKeywords(e.target.value)}
+                  value={CONSTANT_KEYWORDS}
+                  readOnly
                 />
               </div>
 
@@ -100,7 +99,7 @@ export default function ProductDescriptionEditor({ onDescriptionChange }: Produc
                   type="button"
                   className="px-6 py-2.5 rounded-lg bg-[#1E3A8A] text-white font-medium hover:bg-[#1E3A8A]/90 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                   onClick={handleGenerate}
-                  disabled={loading || !characteristics}
+                  disabled={loading}
                 >
                   {loading ? (
                     <>

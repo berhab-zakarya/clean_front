@@ -1,205 +1,203 @@
 import { useState, useEffect } from 'react'
+import { useStatistics } from '../../../hooks/useStatistics'
+import { useStorePath } from '../../../hooks/useStorePath'
+import { useStore } from '../../../hooks/useStore'
+import Image from 'next/image'
+import { StatisticsSnapshot } from '../../../lib/types/statistics'
 
-interface SpendingCategory {
-  id: string
+interface TopProduct {
+  id: number
   name: string
-  amount: number
-  color: string
+  price: string
+  currency: string
+  category_name: string
+  primary_image: {
+    id: number
+    image_url: string
+    alt_text: string
+  } | null
+  order_count: number
 }
 
-interface SpendingData {
-  categories: SpendingCategory[]
-  totalSpending: number
+interface StatisticsData {
+  id: number
+  period: string
+  start_date: string
+  end_date: string
+  total_orders: number
+  total_sales_amount: string
+  average_order_value: string
+  top_products_details: TopProduct[]
 }
 
-interface ChartSegment extends SpendingCategory {
-  percentage: number
-  startAngle: number
-  endAngle: number
-  largeArcFlag: number
-  x1: number
-  y1: number
-  x2: number
-  y2: number
-}
-
-export  function SpendingDonut() {
-  // Mock data matching the image
-  const mockData: SpendingData = {
-    totalSpending: 19760.00,
-    categories: [
-      { id: '1', name: 'Employees Salary', amount: 8000.00, color: '#FF6B9D' },
-      { id: '2', name: 'Material Supplies', amount: 2130.00, color: '#FFB6C1' },
-      { id: '3', name: 'Company tax', amount: 1510.00, color: '#8B5CF6' },
-      { id: '4', name: 'Maintenance system', amount: 2245.00, color: '#6366F1' },
-      { id: '5', name: 'Development System', amount: 4385.00, color: '#3B82F6' },
-      { id: '6', name: 'Production Tools', amount: 1000.00, color: '#A78BFA' },
-    ]
-  }
-
-  const [data, setData] = useState<SpendingData | null>(null)
+export function SpendingDonut() {
+  const [data, setData] = useState<StatisticsSnapshot[]>([])
   const [loading, setLoading] = useState(true)
+  const { getSnapshots } = useStatistics()
+  const { currentStoreId } = useStorePath()
+  const { stores, loading: storesLoading } = useStore()
 
   useEffect(() => {
-    // Simulate loading
-    setTimeout(() => {
-      setData(mockData)
-      setLoading(false)
-    }, 1000)
-  }, [])
+    const fetchData = async () => {
+      if (storesLoading) return
 
-  const calculateChartSegments = (categories: SpendingCategory[], total: number): ChartSegment[] => {
-    const RADIUS = 35
-    const CENTER = 50
-    let currentAngle = 0
+      try {
+        const selectedStore = stores?.find(
+          (store) => store.id.toString() === currentStoreId
+        )
+        const storeUrl = selectedStore?.store_url
 
-    return categories.map((category) => {
-      const percentage = total > 0 ? (category.amount / total) * 100 : 0
-      const angleSpan = (percentage / 100) * 360
-      
-      const startAngle = currentAngle
-      const endAngle = currentAngle + angleSpan
-      
-      // Convert to radians for calculations
-      const startRad = (startAngle * Math.PI) / 180
-      const endRad = (endAngle * Math.PI) / 180
-      
-      // Calculate arc endpoints
-      const x1 = CENTER + RADIUS * Math.cos(startRad)
-      const y1 = CENTER + RADIUS * Math.sin(startRad)
-      const x2 = CENTER + RADIUS * Math.cos(endRad)
-      const y2 = CENTER + RADIUS * Math.sin(endRad)
-      
-      const largeArcFlag = angleSpan > 180 ? 1 : 0
-      
-      currentAngle = endAngle
-      
-      return {
-        ...category,
-        percentage,
-        startAngle,
-        endAngle,
-        largeArcFlag,
-        x1,
-        y1,
-        x2,
-        y2,
+        if (!storeUrl) {
+          console.error('Store URL not found')
+          setLoading(false)
+          return
+        }
+
+        const snapshots = await getSnapshots(storeUrl)
+        console.log('Fetched snapshots:', snapshots)
+        setData(snapshots)
+      } catch (error) {
+        console.error('Failed to fetch statistics:', error)
+      } finally {
+        setLoading(false)
       }
-    })
-  }
+    }
 
-  const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 2,
-    }).format(amount)
-  }
+    fetchData()
+  }, [currentStoreId, stores, storesLoading, getSnapshots])
 
-  if (loading) {
+  if (loading || storesLoading) {
     return (
       <div className="max-w-md mx-auto">
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="animate-pulse text-gray-500 text-center">
-            Loading spending data...
+        <div className="bg-gradient-to-br from-white to-gray-50 rounded-3xl p-8 shadow-lg border border-gray-100/50 backdrop-blur-sm">
+          <div className="flex flex-col items-center justify-center space-y-4">
+            <div className="relative">
+              <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+              <div className="absolute inset-0 w-12 h-12 border-4 border-transparent border-r-purple-300 rounded-full animate-spin animation-delay-150"></div>
+            </div>
+            <div className="text-gray-600 text-center font-medium">
+              Loading top products...
+            </div>
+            <div className="flex space-x-1">
+              <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce animation-delay-100"></div>
+              <div className="w-2 h-2 bg-pink-400 rounded-full animate-bounce animation-delay-200"></div>
+            </div>
           </div>
         </div>
       </div>
     )
   }
 
-  if (!data) return null
-
-  const chartSegments = calculateChartSegments(data.categories, data.totalSpending)
+  // Get the most recent daily statistics
+  const latestDailyStats = data.find(stat => stat.period === 'daily')
+  console.log('Latest daily stats:', latestDailyStats)
+  
+  const topProducts = latestDailyStats?.top_products_details || []
+  console.log('Top products:', topProducts)
 
   return (
     <div className="max-w-md mx-auto font-inter">
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+      <div className="bg-gradient-to-br from-white via-gray-50/30 to-white rounded-3xl p-8 shadow-xl border border-gray-100/50 backdrop-blur-sm relative overflow-hidden">
+        {/* Decorative background elements */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-100/20 to-purple-100/20 rounded-full -translate-y-16 translate-x-16"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-pink-100/20 to-orange-100/20 rounded-full translate-y-12 -translate-x-12"></div>
+        
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-gray-800 text-xl font-medium">Spend by category</h2>
-          <button 
-            className="text-gray-400 p-1 hover:text-gray-600 transition-colors"
-            aria-label="More options"
-          >
-            <div className="flex space-x-1">
-              <div className="w-1 h-1 bg-current rounded-full"></div>
-              <div className="w-1 h-1 bg-current rounded-full"></div>
-              <div className="w-1 h-1 bg-current rounded-full"></div>
+        <div className="flex justify-between items-center mb-8 relative z-10">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
             </div>
-          </button>
-        </div>
-
-        {/* Donut Chart */}
-        <div className="relative flex justify-center items-center mb-8">
-          <div className="w-64 h-64 relative">
-            <svg 
-              viewBox="0 0 100 100" 
-              className="w-full h-full"
-              aria-label="Spending donut chart"
-            >
-              {/* Background circle */}
-              <circle 
-                cx="50" 
-                cy="50" 
-                r="35" 
-                fill="none" 
-                stroke="#f1f5f9" 
-                strokeWidth="6"
-                role="presentation"
-              />
-
-              {/* Data segments */}
-              {chartSegments.map((segment) => {
-                if (segment.percentage === 0) return null
-                
-                return (
-                  <path
-                    key={segment.id}
-                    d={`M ${segment.x1} ${segment.y1} A 35 35 0 ${segment.largeArcFlag} 1 ${segment.x2} ${segment.y2}`}
-                    fill="none"
-                    stroke={segment.color}
-                    strokeWidth="6"
-                    strokeLinecap="round"
-                    className="transition-all duration-300 hover:stroke-opacity-80"
-                    role="graphics-symbol"
-                    aria-label={`${segment.name}: ${formatCurrency(segment.amount)}`}
-                  />
-                )
-              })}
-            </svg>
-
-            {/* Center text */}
-            <div className="absolute inset-0 flex flex-col justify-center items-center text-center">
-              <p className="text-gray-400 text-sm mb-1">Overall Spending</p>
-              <p className="text-gray-800 text-2xl font-semibold">{formatCurrency(data.totalSpending)}</p>
-            </div>
+            <h2 className="text-gray-800 text-xl font-semibold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text">
+              Top Products
+            </h2>
+          </div>
+          <div className="flex flex-col items-end">
+            <span className="text-sm font-medium text-gray-600 bg-gray-100/80 px-3 py-1 rounded-full">
+              {new Date(latestDailyStats?.start_date || '').toLocaleDateString()}
+            </span>
           </div>
         </div>
 
-        {/* Legend */}
-        <div className="space-y-3">
-          {chartSegments.map((category) => (
-            <div 
-              key={category.id} 
-              className="flex items-center justify-between py-1"
-            >
-              <div className="flex items-center">
-                <div
-                  className="w-3 h-3 rounded-full mr-3 flex-shrink-0"
-                  style={{ backgroundColor: category.color }}
-                  role="presentation"
-                />
-                <span className="text-gray-600 text-sm">
-                  {category.name}
-                </span>
+        {/* Products List */}
+        <div className="space-y-4 relative z-10">
+          {topProducts.map((product, index) => {
+            console.log('Rendering product:', product)
+            return (
+              <div 
+                key={product.id}
+                className="group flex items-center justify-between p-4 bg-white/80 backdrop-blur-sm rounded-2xl hover:bg-white hover:shadow-lg transition-all duration-300 border border-gray-100/50 hover:border-gray-200/80 hover:scale-[1.02] cursor-pointer"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <div className="flex items-center space-x-4">
+                  <div className="relative">
+                    {product.primary_image ? (
+                      <div className="relative overflow-hidden rounded-xl shadow-md group-hover:shadow-lg transition-shadow duration-300">
+                        <Image
+                          src={product.primary_image?.image_url ? `http://127.0.0.1:8000${product.primary_image.image_url}` : '/no_placeHolder.jpg'}
+                          alt={product.primary_image?.alt_text || product.name}
+                          className="w-14 h-14 object-cover group-hover:scale-110 transition-transform duration-300"
+                          width={56}
+                          height={56}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      </div>
+                    ) : (
+                      <div className="w-14 h-14 bg-gradient-to-br from-gray-200 to-gray-300 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow duration-300">
+                        <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    )}
+                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg">
+                      {index + 1}
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-gray-800 font-semibold text-sm truncate group-hover:text-gray-900 transition-colors duration-200">
+                      {product.name}
+                    </h3>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border border-blue-200/50">
+                        {product.category_name}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right flex-shrink-0 ml-4">
+                  <p className="text-gray-900 font-bold text-lg bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                    {new Intl.NumberFormat('en-US', {
+                      style: 'currency',
+                      currency: product.currency,
+                    }).format(parseFloat(product.price))}
+                  </p>
+                  <div className="flex items-center justify-end space-x-1 mt-1">
+                    <div className="w-2 h-2 bg-gradient-to-r from-orange-400 to-red-400 rounded-full animate-pulse"></div>
+                    <p className="text-sm font-medium text-gray-600">
+                      {product.order_count} orders
+                    </p>
+                  </div>
+                </div>
               </div>
-              <span className="text-gray-800 text-sm font-medium">
-                {formatCurrency(category.amount)}
-              </span>
-            </div>
-          ))}
+            )
+          })}
         </div>
+
+        {/* Empty state */}
+        {topProducts.length === 0 && (
+          <div className="text-center py-12 relative z-10">
+            <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center">
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+              </svg>
+            </div>
+            <p className="text-gray-500 font-medium">No products data available</p>
+            <p className="text-gray-400 text-sm mt-1">Check back later for insights</p>
+          </div>
+        )}
       </div>
     </div>
   )

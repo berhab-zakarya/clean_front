@@ -643,6 +643,40 @@ export const storesAPI = {
       throw error;
     }
   },
+  updateTenant: async (tenantId: number, data: {
+    constants: {
+      company_name: string;
+      company_description: string;
+      social_links: Array<{ name: string; url: string }>;
+      announcement_text: string;
+      hero_title: string;
+      hero_description: string;
+      email: string;
+      phone: string;
+      address: string;
+      whatsapp: string;
+    }
+  }): Promise<Store> => {
+    try {
+      const response = await api.patch<Store>(`/tenants/${tenantId}/update/`, data);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const apiError = error.response?.data as StoreApiError;
+        const errorMessage =
+          apiError?.message ||
+          apiError?.detail ||
+          Object.values(apiError?.errors || {}).flat().join(', ') ||
+          'Failed to update tenant';
+        debug.error('Tenant update error:', {
+          status: error.response?.status,
+          data: error.response?.data
+        });
+        throw new Error(errorMessage);
+      }
+      throw new Error('Network error while updating tenant');
+    }
+  },
 };
 
 // --- Products API ---
