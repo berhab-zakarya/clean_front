@@ -256,6 +256,13 @@ export default function EcommerceSetupGuide() {
           </p>
         </div>
 
+        <button
+         onClick={() => router.push(`/dashboard/${currentStore.id}/developers`)} 
+          className="flex rounded-md items-center gap-2  bg-blue-900 py-5 px-3 text-white font-semibold mb-8"
+        >
+        DEVELOPER MODE
+        </button>
+
         {/* Enhanced Progress Indicator */}
         <div className="mb-16">
           <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8">

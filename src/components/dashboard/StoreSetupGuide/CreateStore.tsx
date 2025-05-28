@@ -497,7 +497,7 @@ export const CreateStore = ({ onComplete }: CreateStoreProps) => {
                             {storeId && (
                               <button
                                 onClick={() => {
-                                  router.push(`/dashboard/${storeId}`);
+                                  router.push(`/dashboard/${storeId}/developers`);
                                 }}
                                 className="flex items-center gap-2 text-white bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-3 rounded-lg font-semibold hover:from-emerald-600 hover:to-teal-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
                               >

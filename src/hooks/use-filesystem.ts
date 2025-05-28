@@ -92,7 +92,7 @@ export function useFilesystem(tenantName: string) {
 
         // Fetch file content from API
         const response = await filesAPI.getFileContent(tenantName, path)
-        
+        console.log('File content response:', response)
         if (!response || !response.content) {
           throw new Error('Failed to fetch file content')
         }

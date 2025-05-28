@@ -1263,7 +1263,8 @@ interface FileContentResponse {
 export const filesAPI = {
   getStoreFiles: async (subdomain: string): Promise<FileTreeResponse> => {
     try {
-      const response = await api.get<FileTreeResponse>(`/tenants/${subdomain}/files/`);
+      const response = await api.get<FileTreeResponse>(`/tenants/files/${subdomain}/`);
+      console.log('Store Files Response:', response.data);
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -1278,29 +1279,27 @@ export const filesAPI = {
     }
   },
 
-  getFileContent: async (subdomain: string, filePath: string): Promise<FileContentResponse> => {
+  getFileContent: async (subdomain: string, path: string): Promise<FileContentResponse> => {
     try {
-      const response = await api.get<FileContentResponse>(`/api/tenants/${subdomain}/files`, {
-        params: {
-          path: filePath
-        }
+      console.log('Fetching file content for:', { subdomain, path });
+      console.log('API URL:', `/tenants/files/${subdomain}/`);
+      const response = await api.post<FileContentResponse>(`/tenants/files/${subdomain}/`, {
+      path: path  
       });
+      console.log('File Content Response:', response.data);
       return response.data;
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const apiError = error.response?.data as ApiError;
+      console.error('GetFileContent Error:', error);
+      
         throw new Error(
-          apiError?.detail || 
-          apiError?.message || 
-          'Failed to fetch file content'
+         error instanceof Error ? error.message : 'Unknown error while fetching file content'
         );
-      }
-      throw new Error('Network error while fetching file content');
     }
   },
 
   updateFileContent: async (subdomain: string, filePath: string, content: string): Promise<FileContentResponse> => {
     try {
+      
       const response = await api.post<FileContentResponse>(`/tenants/files/${subdomain}/`, {
         path: filePath,
         content: content
